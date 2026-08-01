@@ -191,6 +191,28 @@ export function rankApproximations(
 }
 
 /**
+ * A mask pair that NO trail joins — every chain between them crosses a zero in
+ * the table, so the piling-up lemma predicts a bias of exactly 0. The demo uses
+ * it for the "bad approximation" scenario: a relation that is not biased is not
+ * a weakness, and the attack should visibly find nothing.
+ */
+export function deadApproximation(
+  sbox: Sbox,
+  rounds: number,
+  half: NibbleHalf,
+): { startMask: number; endMask: number } | null {
+  const best = bestProductFor(sbox, rounds);
+  for (let a = 1; a < 256; a++) {
+    for (let b = 1; b < 256; b++) {
+      if (half === 'low' && (b & 0xf0) !== 0) continue;
+      if (half === 'high' && (b & 0x0f) !== 0) continue;
+      if (best[a * 256 + b] === 0) return { startMask: a, endMask: b };
+    }
+  }
+  return null;
+}
+
+/**
  * Reconstruct the best trail joining a specific (start, end) mask pair by
  * greedily splitting on the intermediate mask that maximises the product.
  */

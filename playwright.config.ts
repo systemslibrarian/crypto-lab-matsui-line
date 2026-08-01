@@ -8,6 +8,10 @@ const BASE = '/crypto-lab-matsui-line/';
 
 export default defineConfig({
   testDir: './e2e',
+  // Visual baselines are per-platform, so a macOS snapshot fails on the Linux
+  // CI runner for reasons unrelated to the change. Visual regression is opt-in
+  // via `npm run test:visual`; a11y and behaviour are what gate the deploy.
+  testIgnore: process.env.VISUAL ? [] : ['**/visual.spec.ts'],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: 'list',

@@ -1,11 +1,11 @@
 NEW DEMO BRIEF
-- Repo name:         crypto-lab-accumulator
-- Short name (H1):   Accumulator
-- Subtitle:          RSA accumulator · dynamic membership · non-membership proofs
-- One-liner:         Cryptographic accumulators where a constant-size digest commits to a dynamic set and supports both membership and non-membership proofs — certificate revocation without downloading a list.
-- Concept to teach:  An accumulator is like a Merkle root that never grows, no matter how large the set gets. Adding or removing elements updates the digest but doesn't change its size. The killer feature over Merkle trees is non-membership proofs: prove that an element is NOT in the set, which is what certificate revocation actually needs.
-- Primitives/spec:   Benaloh-de Mare 1993 (original accumulator), Baric-Pfitzmann 1997 (collision-free), Camenisch-Lysyanskaya 2002 (dynamic accumulator with non-membership), Li-Li-Xue 2007 (universal accumulator)
-- Accent (--accent): #0ea5e9
-- Favicon emoji:     🧮
-- In scope:          RSA accumulator: accumulate a set of elements into a single group element; membership witness: prove element ∈ set with a constant-size proof; non-membership witness: prove element ∉ set; dynamic update: add/remove elements and watch the digest update while existing proofs remain verifiable (or require updating); comparison panel: accumulator vs Merkle tree (digest size constant vs O(log n), non-membership trivial vs expensive, update cost); revocation use case: add revoked certificates, prove a certificate is NOT revoked; real modular exponentiation (BigInt)
-- Non-goals:         No pairing-based accumulators (mention as extension); no batched updates; no zero-knowledge accumulator proofs; RSA modulus is toy-sized for browser performance — state this honestly; links to Key Mirror and Credential Veil
+- Repo name:         crypto-lab-matsui-line
+- Short name (H1):   Matsui Line
+- Subtitle:          Linear cryptanalysis · piling-up lemma · Matsui 1993
+- One-liner:         Linear cryptanalysis where statistical bias in linear approximations of a cipher's S-boxes accumulates across rounds to recover key bits — the pair-mate attack to differential cryptanalysis.
+- Concept to teach:  Every S-box has linear approximations that hold with probability ≠ ½. Individually the bias is tiny. But the piling-up lemma shows biases compound across rounds, and with enough known plaintext-ciphertext pairs, the accumulated bias becomes exploitable. The key recovery works by guessing key bits and checking which guess maximizes the bias — the correct guess wins.
+- Primitives/spec:   Matsui 1993 ("Linear Cryptanalysis Method for DES Cipher"), Matsui 1994 (first experimental break of DES), piling-up lemma
+- Accent (--accent): #6366f1
+- Favicon emoji:     📐
+- In scope:          Same toy SPN used by Biham Lens (consistency); linear approximation table (LAT) in place of the DDT — show the bias of every input/output mask pair for the S-box; piling-up lemma visualization: watch individual biases compound across 2, 3, 4 rounds; key recovery attack: generate known plaintext-ciphertext pairs, guess partial key bits, measure bias for each guess, the correct key produces the highest bias; "how many pairs do I need?" calculator based on accumulated bias; side-by-side with Biham Lens: differential uses chosen plaintext + difference propagation, linear uses known plaintext + bias accumulation; link to Biham Lens
+- Non-goals:         No full DES linear cryptanalysis (too large for browser); no multidimensional linear cryptanalysis; no zero-correlation attacks; the toy SPN is for teaching, not a production cipher

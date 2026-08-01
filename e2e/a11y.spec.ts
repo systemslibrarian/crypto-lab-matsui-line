@@ -9,14 +9,57 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
  * reach — including the two failure verdicts, which is exactly where a
  * contrast slip would hide — before anything is scanned.
  */
+const pick = (page: Page, group: string, label: string) =>
+  page.locator(`#seg-${group} label`, { hasText: label }).first().click();
+
+const finished = (page: Page) =>
+  expect(page.locator('#run-status')).toContainText(/Counted|run again|cannot/, { timeout: 30_000 });
+
 async function driveDemos(page: Page): Promise<void> {
-  // Exhibit 1 — cipher walkthrough, both S-boxes, key revealed.
-  await page.locator('#plaintext-input').fill('183');
+  // Exhibit 1 — the cockpit, in each of its states: idle is already on screen,
+  // then counting, then done, then stale, then blocked.
+  await page.locator('#attack-run').click();
+  await finished(page);
+  await expect(page.locator('#attack-verdict')).toContainText(/RECOVERED|PARTIAL/);
   await page.locator('#key-reveal').click();
   await expect(page.locator('#key-reveal')).toHaveAttribute('aria-pressed', 'true');
+
+  // Every scenario preset, each of which lands in a different verdict.
+  await page.locator('#preset-starve').click();
+  await finished(page);
+  await page.locator('#preset-round').click();
+  await finished(page);
+  await page.locator('#preset-bad').click();
+  await finished(page);
+  await page.locator('#preset-reset').click();
+  await finished(page);
+
+  // The rejected-approximation state (a mask straddling both nibbles).
+  await page.locator('details.tune > summary').click();
+  await pick(page, 'approx', 'My own masks');
+  await page.locator('#mask-end').fill('193');
+  await expect(page.locator('#attack-run')).toBeDisabled();
+  await page.locator('#mask-end').fill('192');
+  await expect(page.locator('#attack-run')).toBeEnabled();
+  await page.locator('#attack-run').click();
+  await finished(page);
+  await pick(page, 'approx', 'Strongest, unverified');
+  await pick(page, 'approx', 'Verified');
+
+  // The stale state needs a result to retire first, so run, then change a
+  // control and leave the retired result on screen to be scanned.
+  await page.locator('#attack-run').click();
+  await finished(page);
+  await pick(page, 'traffic', '256');
+  await expect(page.locator('#attack-verdict')).toContainText('CONFIGURATION CHANGED');
+  await page.locator('#attack-run').click();
+  await finished(page);
   await page.locator('#key-new').click();
 
-  // Exhibit 2 — LAT: a leaking cell, a balanced cell, and a trivial cell.
+  // Exhibit 3 — cipher walkthrough.
+  await page.locator('#plaintext-input').fill('183');
+
+  // Exhibit 4 — LAT: a leaking cell, a balanced cell, and a trivial cell.
   for (const [a, b] of [
     [11, 4],
     [1, 1],
@@ -27,8 +70,8 @@ async function driveDemos(page: Page): Promise<void> {
     await expect(page.locator('#lat-detail h3')).toBeVisible();
   }
 
-  // Exhibit 3 — step the piling-up trail all the way to the end, then reset
-  // and step once so both the pending and applied cards are on screen.
+  // Exhibit 5 — step the trail to the end, then reset and step once so both
+  // the applied and pending cards get scanned.
   for (let i = 0; i < 4; i++) {
     const step = page.locator('#piling-step');
     if (await step.isEnabled()) await step.click();
@@ -36,38 +79,18 @@ async function driveDemos(page: Page): Promise<void> {
   await page.locator('#piling-reset').click();
   await page.locator('#piling-step').click();
 
-  // Exhibit 4 — the attack, in all three verdict states.
-  await page.locator('#attack-codebook').click(); // recovered → alarm styling
-  await expect(page.locator('#attack-verdict')).toContainText(/RECOVERED|PARTIAL|NOT RUN/);
-  await page.locator('#samples-input').fill('4'); // 16 pairs: too thin to work
-  await page.locator('#attack-run').click();
-
-  // The custom-mask path, including its rejection state.
-  await page.locator('#approx-select').selectOption('custom');
-  await page.locator('#mask-end').fill('193'); // straddles both nibbles → rejected
-  await expect(page.locator('#attack-run')).toBeDisabled();
-  await page.locator('#mask-end').fill('192');
-  await expect(page.locator('#attack-run')).toBeEnabled();
-  await page.locator('#attack-run').click();
-  await page.locator('#approx-select').selectOption('ranked');
-  await page.locator('#approx-select').selectOption('auto');
-
-  // Exhibit 5 — the measured success curve (a real computation, not a mock).
+  // Exhibit 6 — the measured success curve, off-thread, with its progress bar.
   await page.locator('#measure-run').click();
-  await expect(page.locator('#measure-result table')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('#measure-result table')).toBeVisible({ timeout: 120_000 });
 
-  // The full cipher, where the attack is supposed to fail, plus the S-box swap
-  // and the nibble that resists — three more result states to scan.
-  await page.locator('#rounds-select').selectOption('4');
-  await page.locator('#attack-codebook').click();
-  await page.locator('#half-select').selectOption('low');
-  await page.locator('#attack-codebook').click();
-  await page.locator('#sbox-select').selectOption('present');
-  await page.locator('#attack-codebook').click();
-  await page.locator('#rounds-select').selectOption('3');
-  await page.locator('#half-select').selectOption('high');
-  await page.locator('#sbox-select').selectOption('heys');
-  await page.locator('#attack-codebook').click();
+  // The S-box swap and the nibble that resists — two more result states.
+  await pick(page, 'sbox', 'PRESENT');
+  await page.locator('#attack-run').click();
+  await finished(page);
+  await pick(page, 'half', 'Low');
+  await pick(page, 'sbox', 'Heys');
+  await page.locator('#attack-run').click();
+  await finished(page);
 }
 
 async function prepare(page: Page): Promise<void> {

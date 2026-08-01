@@ -6,6 +6,7 @@ import {
   normalCdf,
   requiredSamples,
   runAttack,
+  startAttack,
   screenApproximation,
   selectApproximation,
   theoreticalSuccessRate,
@@ -271,6 +272,52 @@ describe('the attack fails honestly where it should', () => {
     expect(result.tiedAtTop).toBe(true);
     expect(result.winners).toHaveLength(16);
     expect(result.bitsRecovered).toBe(0);
+  });
+});
+
+describe('incremental counting', () => {
+  const key = generateKey(0x3a94);
+  const base = {
+    sbox: heys,
+    key,
+    cipherRounds: 3,
+    half: 'high' as const,
+    startMask: TRAIL.startMask,
+    endMask: TRAIL.endMask,
+  };
+
+  it('reaches exactly the same result as counting in one go', () => {
+    const pairs = collectKnownPairs(key, heys, 3, 1000, mulberry32(5));
+    const counter = startAttack({ ...base, pairs });
+    while (!counter.done) counter.advance(37); // deliberately uneven batches
+    expect(counter.snapshot()).toEqual(runAttack({ ...base, pairs }));
+    expect(counter.processed).toBe(1000);
+  });
+
+  it('a partial snapshot is the honest result for the pairs seen so far', () => {
+    // This is what makes it safe to animate: the bars at 40 of 256 pairs show
+    // what an attacker with 40 pairs would actually have, not an interpolation.
+    const pairs = collectKnownPairs(key, heys, 3, 256, mulberry32(9));
+    const counter = startAttack({ ...base, pairs });
+    counter.advance(40);
+    const partial = counter.snapshot();
+    expect(partial.samples).toBe(40);
+    expect(partial).toEqual(runAttack({ ...base, pairs: pairs.slice(0, 40) }));
+  });
+
+  it('stops at the end and reports how much it consumed', () => {
+    const pairs = collectKnownPairs(key, heys, 3, 10, mulberry32(1));
+    const counter = startAttack({ ...base, pairs });
+    expect(counter.advance(4)).toBe(4);
+    expect(counter.advance(999)).toBe(6);
+    expect(counter.advance(999)).toBe(0);
+    expect(counter.done).toBe(true);
+    expect(counter.total).toBe(10);
+  });
+
+  it('validates its masks before counting a single pair', () => {
+    expect(() => startAttack({ ...base, endMask: 0b1100_0001, pairs: [] })).toThrow(RangeError);
+    expect(() => startAttack({ ...base, endMask: 0, pairs: [] })).toThrow(RangeError);
   });
 });
 

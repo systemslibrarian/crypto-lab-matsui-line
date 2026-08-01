@@ -23,6 +23,7 @@
   --accent: #6366f1;
   --accent-text: #a9abff;
   --accent-fill: #4f46e5;
+  --accent-fill-hover: #4338ca;
   --accent-ink: #ffffff;
   --accent-soft: #1e2150;
   --accent-line: #3b3f86;
@@ -61,6 +62,7 @@
   --accent: #6366f1;
   --accent-text: #4038c0;
   --accent-fill: #4338ca;
+  --accent-fill-hover: #3730a3;
   --accent-ink: #ffffff;
   --accent-soft: #e8e9fb;
   --accent-line: #b9bcf0;
@@ -138,6 +140,9 @@ body {
   margin: 0 0 0.9rem;
 }
 
+/* Inline links carry a persistent underline so they are not distinguished by
+   colour alone (WCAG 1.4.1). Buttons, nav pills and card links are recognisable
+   by shape and position, so they opt out explicitly. */
 #app a {
   color: var(--accent-text);
   text-decoration: underline;
@@ -146,6 +151,28 @@ body {
 
 #app a:hover {
   text-decoration-thickness: 2px;
+}
+
+/* These also have to restate `color`: `#app a` carries ID specificity and would
+   otherwise beat the component's own colour, which is exactly how the hero
+   button ended up as light indigo text on an indigo fill. */
+#app a.btn,
+#app .wayfinder a,
+#app .mech-link {
+  text-decoration: none;
+  color: var(--text);
+}
+
+#app a.btn-primary {
+  color: var(--accent-ink);
+}
+
+#app .wayfinder a {
+  color: var(--text-dim);
+}
+
+#app .wayfinder a[aria-current='true'] {
+  color: var(--accent-text);
 }
 
 #app :focus-visible {
@@ -243,6 +270,454 @@ body {
     flex-basis: auto;
     min-width: 0;
   }
+}
+
+.hero-actions {
+  margin: 1rem 0 0;
+}
+
+.btn-lg {
+  padding: 0.7rem 1.3rem;
+  font-size: 1rem;
+}
+
+/* ── Wayfinder ────────────────────────────────────────────────────── */
+.wayfinder {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1.25rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background-color: var(--panel);
+}
+
+.wayfinder a {
+  flex: 1 1 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.wayfinder a:hover {
+  background-color: var(--panel-2);
+  color: var(--text);
+}
+
+.wayfinder a[aria-current='true'] {
+  background-color: var(--accent-soft);
+  color: var(--accent-text);
+  box-shadow: inset 0 0 0 1px var(--accent-line);
+}
+
+.way-num {
+  display: grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  background-color: var(--panel-2);
+  border: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+}
+
+.wayfinder a[aria-current='true'] .way-num {
+  background-color: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--accent-ink);
+}
+
+/* ── Cockpit — the work surface, deliberately unlike the panels ───── */
+.cockpit {
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-lg);
+  background-color: var(--panel);
+  background-image: linear-gradient(180deg, var(--accent-soft) 0, transparent 12rem);
+  padding: clamp(1rem, 2.5vw, 2rem);
+  margin: 0 0 1.5rem;
+  box-shadow: 0 1px 0 var(--border-strong);
+}
+
+.cockpit-head h2 {
+  margin: 0 0 0.4rem;
+  font-size: clamp(1.35rem, 2.8vw, 1.9rem);
+  line-height: 1.15;
+}
+
+.cockpit-lede {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--text-dim);
+  font-size: 1.02rem;
+}
+
+.cockpit-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 20rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.4rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .cockpit-grid {
+    grid-template-columns: 1fr;
+  }
+  /* Stacked, the action has to come before the knobs — otherwise the primary
+     button sits two screens down behind controls nobody has a reason to touch
+     yet. Source order keeps the controls first for the keyboard and the
+     screen reader, where "above" means nothing. */
+  .cockpit-result {
+    order: -1;
+  }
+}
+
+.cockpit-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.target-card {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background-color: var(--panel-2);
+  padding: 0.85rem 1rem;
+}
+
+.target-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.target-value {
+  display: block;
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0.2rem 0 0.35rem;
+  word-break: break-all;
+}
+
+.target-note {
+  margin: 0 0 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.target-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+/* Segmented controls: real radios, styled. Keyboard behaviour comes free. */
+.seg-group {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+.seg-group legend {
+  padding: 0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.4rem;
+}
+
+.seg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.seg-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.seg-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seg-label {
+  flex: 0 1 auto;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.42rem 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background-color: var(--panel-2);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.seg-label:hover {
+  border-color: var(--accent);
+}
+
+.seg-input:checked + .seg-label {
+  background-color: var(--accent-fill);
+  border-color: var(--accent-fill);
+  color: var(--accent-ink);
+}
+
+.seg-input:focus-visible + .seg-label {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.seg-hint {
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  opacity: 1;
+}
+
+.seg-note {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.tune {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--panel-2);
+  padding: 0 0.85rem;
+}
+
+.tune-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  padding-bottom: 0.85rem;
+}
+
+.cockpit-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.run-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.run-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  color: var(--text-dim);
+  min-width: 0;
+}
+
+.run-status-icon {
+  font-family: var(--mono);
+  font-weight: 700;
+}
+
+.run-status.is-stale {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.run-status.is-blocked {
+  color: var(--alarm);
+  font-weight: 600;
+}
+
+.run-progress {
+  flex: 1 1 8rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background-color: var(--grid-zero);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.run-progress > div {
+  height: 100%;
+  background-color: var(--accent-fill);
+}
+
+.approx-readout {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: 0.86rem;
+  color: var(--text-dim);
+}
+
+.dim {
+  color: var(--text-muted);
+}
+
+.scenarios {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 1.4rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--border);
+}
+
+.scenarios-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.btn-scenario {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  text-align: left;
+  padding: 0.5rem 0.85rem;
+}
+
+.btn-scenario strong {
+  font-size: 0.9rem;
+}
+
+.btn-scenario span {
+  font-size: 0.76rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+/* ── Mechanism chain ──────────────────────────────────────────────── */
+.mechanism {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.15rem;
+}
+
+.mech-arrow {
+  text-align: center;
+  color: var(--accent-text);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.mech-link {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background-color: var(--panel-2);
+  text-decoration: none;
+  color: inherit;
+}
+
+.mech-link:hover {
+  border-color: var(--accent);
+  background-color: var(--accent-soft);
+}
+
+.mech-stage.is-pending .mech-link {
+  border-style: dashed;
+  background-color: transparent;
+}
+
+.mech-index {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background-color: var(--accent-fill);
+  color: var(--accent-ink);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.mech-stage.is-pending .mech-index {
+  background-color: var(--panel-2);
+  color: var(--text-dim);
+  border: 1px solid var(--border-strong);
+}
+
+.mech-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.mech-label {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.mech-value {
+  font-family: var(--mono);
+  font-size: 1.05rem;
+  color: var(--accent-text);
+}
+
+.mech-note {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.sources li {
+  margin-bottom: 0.5rem;
+  color: var(--text-dim);
+}
+
+.control-inline {
+  max-width: 26rem;
+  margin-bottom: 1rem;
 }
 
 /* ── Panels ───────────────────────────────────────────────────────── */
@@ -476,9 +951,11 @@ details > dl {
   color: var(--accent-ink);
 }
 
+/* Hover DARKENS the fill. Lightening it toward --accent drops white text to
+   4.46:1 — a hover state is a state, and the gate scans it. */
 .btn-primary:hover {
-  background-color: var(--accent);
-  border-color: var(--accent);
+  background-color: var(--accent-fill-hover);
+  border-color: var(--accent-fill-hover);
 }
 
 .btn[disabled] {
@@ -1049,6 +1526,9 @@ details > dl {
   min-width: 2px;
 }
 
+/* Colour tracks the integrity of the cipher, not the success of a click:
+   coral marks a secret that is now public, neutral marks a candidate still
+   unresolved. Every one of these also carries a word, never colour alone. */
 .ranking tr.is-correct {
   background-color: var(--accent-soft);
 }
@@ -1059,6 +1539,43 @@ details > dl {
 
 .ranking tr.is-correct td {
   font-weight: 700;
+}
+
+.ranking tr.is-wrong-pick .rank-bar {
+  background-color: var(--warn);
+}
+
+.rank-bar.is-empty {
+  background-color: var(--border-strong);
+}
+
+.ranking td.candidate {
+  text-align: left;
+}
+
+.verdict.is-armed,
+.verdict.is-counting,
+.verdict.is-stale {
+  border-left-width: 5px;
+}
+
+.verdict.is-armed .verdict-head,
+.verdict.is-counting .verdict-head {
+  color: var(--text-dim);
+}
+
+.verdict.is-stale {
+  border-color: var(--warn);
+}
+
+.verdict.is-stale .verdict-head {
+  color: var(--warn);
+}
+
+.measure-progress-text {
+  margin: 0.6rem 0 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.88rem;
 }
 
 .marker {

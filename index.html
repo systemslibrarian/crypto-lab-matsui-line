@@ -151,54 +151,168 @@
   })();
 </script>
 <!-- END crypto-lab shared header -->
+    
     <main id="app" class="shell">
       <header class="cl-hero">
         <div class="cl-hero-main">
           <h1 class="cl-hero-title">Matsui Line</h1>
           <p class="cl-hero-sub">Linear cryptanalysis · piling-up lemma · Matsui 1993</p>
           <p class="cl-hero-desc">
-            Counts a real S-box's linear leaks, compounds them across rounds with the piling-up lemma, and runs
-            Matsui's Algorithm 2 on known plaintext until the correct key nibble rises to the top of the ranking.
+            Watch sixteen key guesses compete on real evidence until the right one separates — the attack that broke
+            DES, run on a cipher small enough to break in front of you.
+          </p>
+          <p class="hero-actions">
+            <a class="btn btn-primary btn-lg" href="#attack">Break the toy cipher ↓</a>
           </p>
         </div>
         <aside class="cl-hero-why" aria-label="Why it matters">
           <span class="cl-hero-why-label">WHY IT MATTERS</span>
           <p class="cl-hero-why-text">
-            Linear cryptanalysis was the first attack to break full DES faster than brute force, and it needs no
-            control over the input at all — only enough ordinary traffic. Every block cipher designed since is
-            shaped by the need to survive it, which is why AES has the S-box it has.
+            Linear cryptanalysis was the first attack to break full DES faster than brute force, and it needs no control
+            over the input at all — only enough ordinary traffic. Every block cipher designed since is shaped by the
+            need to survive it, which is why AES has the S-box it has.
           </p>
         </aside>
       </header>
 
-      <!-- ── Plain-language on-ramp ─────────────────────────────────── -->
-      <section class="panel intro" aria-labelledby="intro-h">
-        <h2 id="intro-h">What is linear cryptanalysis?</h2>
-        <p class="lede">
-          A good cipher should behave like a fair coin: knowing some bits of the input should tell you exactly
-          nothing about the output. Real ciphers get close to that, but not all the way. Deep inside, small lookup
-          tables called <dfn>S-boxes</dfn> substitute one chunk of bits for another, and no small table is perfectly
-          balanced. For some combinations of input and output bits, the coin lands heads 12 times in 16 instead of 8.
-        </p>
-        <p>
-          That imbalance is called a <dfn>bias</dfn>, and on its own it is useless — one leaky S-box buried under
-          three more rounds of scrambling tells you nothing. Mitsuru Matsui's insight in 1993 was that biases
-          <em>compound</em>. Chain the leaks together and you get a statement about the plaintext and the last round
-          that is true slightly more often than half the time. Collect enough traffic, and "slightly more than half"
-          becomes a measurement — and a measurement is a key.
-        </p>
-        <p>
-          The attacker here never chooses a single plaintext. They watch ordinary encrypted traffic, guess four bits
-          of the final subkey, and check which guess makes the leak show up. The right guess is the one where the
-          bias appears. That is the whole attack, and you can run it below.
-        </p>
+      <nav class="wayfinder" aria-label="Sections of this demo">
+        <a href="#attack" data-way="attack"><span class="way-num">1</span> Break it</a>
+        <a href="#mechanism" data-way="mechanism"><span class="way-num">2</span> Explain it</a>
+        <a href="#samples" data-way="samples"><span class="way-num">3</span> Stress it</a>
+        <a href="#honesty" data-way="honesty"><span class="way-num">4</span> Limits</a>
+      </nav>
+
+      <!-- ══ 1. THE COCKPIT — the whole point of the page ══════════════ -->
+      <section class="cockpit" aria-labelledby="attack-h" id="attack">
+        <div class="cockpit-head">
+          <h2 id="attack-h">Break the toy cipher</h2>
+          <p class="cockpit-lede">
+            A cipher should look like a coin flip. This one doesn't, quite — and that is enough. Below is a real 8-bit
+            cipher holding a secret key. You get to watch ordinary encrypted traffic, nothing chosen, nothing
+            privileged. Guess the last four key bits sixteen ways, count which guess makes the cipher's leak show up,
+            and the right one rises out of the noise.
+          </p>
+        </div>
+
+        <div class="cockpit-grid">
+          <div class="cockpit-controls">
+            <div class="target-card">
+              <span class="target-label">The secret</span>
+              <output class="target-value" id="key-value" aria-label="Secret key status">4 hidden bits</output>
+              <p class="target-note" id="key-note">
+                A 16-bit key from <code>crypto.getRandomValues()</code>, in memory only. The attack never reads it.
+              </p>
+              <div class="target-actions">
+                <button type="button" class="btn btn-ghost btn-sm" id="key-reveal" aria-pressed="false">
+                  Peek at the key
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="key-new">New key</button>
+              </div>
+            </div>
+
+            <fieldset class="seg-group">
+              <legend>Traffic to collect</legend>
+              <div class="seg" id="seg-traffic" role="group" aria-label="Known plaintexts to collect"></div>
+              <p class="seg-note" id="traffic-note"></p>
+            </fieldset>
+
+            <fieldset class="seg-group">
+              <legend>Rounds in the cipher</legend>
+              <div class="seg" id="seg-rounds" role="group" aria-label="Rounds"></div>
+              <p class="seg-note" id="rounds-note"></p>
+            </fieldset>
+
+            <details class="tune">
+              <summary>Change the target</summary>
+              <div class="tune-body">
+                <fieldset class="seg-group">
+                  <legend>S-box</legend>
+                  <div class="seg" id="seg-sbox" role="group" aria-label="S-box"></div>
+                  <p class="seg-note" id="sbox-note"></p>
+                </fieldset>
+                <fieldset class="seg-group">
+                  <legend>Target nibble of the final subkey</legend>
+                  <div class="seg" id="seg-half" role="group" aria-label="Target nibble"></div>
+                </fieldset>
+                <fieldset class="seg-group">
+                  <legend>Approximation</legend>
+                  <div class="seg seg-stack" id="seg-approx" role="group" aria-label="Approximation"></div>
+                  <p class="seg-note" id="approx-note"></p>
+                </fieldset>
+                <div class="custom-masks" id="custom-masks" hidden>
+                  <label for="mask-start">Plaintext mask (0–255)</label>
+                  <input id="mask-start" type="number" min="0" max="255" value="9" />
+                  <label for="mask-end">Last-round mask (0–255)</label>
+                  <input id="mask-end" type="number" min="0" max="255" value="192" />
+                  <p class="seg-note" id="mask-note"></p>
+                </div>
+              </div>
+            </details>
+          </div>
+
+          <div class="cockpit-result">
+            <div class="run-row">
+              <button type="button" class="btn btn-primary btn-lg" id="attack-run">Run Matsui's attack</button>
+              <div class="run-status" id="run-status" role="status" aria-live="polite"></div>
+            </div>
+
+            <p class="approx-readout" id="approx-readout"></p>
+
+            <div id="attack-verdict" class="verdict" role="status" aria-live="polite"></div>
+
+            <div class="ranking-wrap" role="region" aria-label="The sixteen key candidates" tabindex="0">
+              <table class="ranking" id="attack-ranking">
+                <caption class="sr-only">
+                  Every candidate value for the target subkey nibble, with how often the approximation held and the
+                  bias that implies.
+                </caption>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="scenarios">
+          <span class="scenarios-label">Try to break the attack:</span>
+          <button type="button" class="btn btn-scenario" id="preset-starve">
+            <strong>Starve it</strong><span>16 pairs — is that enough signal?</span>
+          </button>
+          <button type="button" class="btn btn-scenario" id="preset-round">
+            <strong>Add a round</strong><span>4 rounds — does the leak survive?</span>
+          </button>
+          <button type="button" class="btn btn-scenario" id="preset-bad">
+            <strong>Bad relation</strong><span>An unbiased approximation — what then?</span>
+          </button>
+          <button type="button" class="btn btn-scenario" id="preset-reset">
+            <strong>Reset</strong><span>Back to the working break</span>
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" id="copy-link">Copy experiment link</button>
+        </div>
+
+        <details class="deep">
+          <summary>Why the wrong guesses are not quite noise (the wrong-key hypothesis)</summary>
+          <div id="attack-screen"></div>
+        </details>
+      </section>
+
+      <!-- ══ 2. WHY THAT WORKED ═══════════════════════════════════════ -->
+      <section class="panel" aria-labelledby="mechanism-h" id="mechanism">
+        <div class="panel-head">
+          <h2 id="mechanism-h"><span class="step-num">2</span> Why did that work?</h2>
+          <p class="panel-sub">
+            One chain, four links, all of it real. A single S-box is slightly unbalanced; the piling-up lemma carries
+            that imbalance across rounds at a cost; whatever survives shows up as a bias in the counter for the correct
+            key guess — and nowhere else. Each link below shows the value your current settings produce. Select one to
+            open the exhibit behind it.
+          </p>
+        </div>
+        <ol class="mechanism" id="mechanism-chain"></ol>
         <details class="jargon">
           <summary>The five words you need</summary>
           <dl>
             <dt>S-box</dt>
             <dd>
-              A small substitution table — here, 4 bits in, 4 bits out. It is the only non-linear part of the cipher,
-              so it is the only part that can resist an attack made of linear equations.
+              A small substitution table — here, 4 bits in, 4 bits out. It is the only non-linear part of the cipher, so
+              it is the only part that can resist an attack made of linear equations.
             </dd>
             <dt>Mask</dt>
             <dd>
@@ -207,14 +321,11 @@
             </dd>
             <dt>Bias (ε)</dt>
             <dd>
-              How far from a coin flip a relation is. If it holds 12 times in 16, the probability is 3/4 and the bias
-              is 3/4 − 1/2 = 1/4. Zero bias means no information.
+              How far from a coin flip a relation is. If it holds 12 times in 16, the probability is 3/4 and the bias is
+              3/4 − 1/2 = 1/4. Zero bias means no information.
             </dd>
             <dt>Trail</dt>
-            <dd>
-              A chain of masks, one per round, connecting a plaintext relation to a last-round relation. Also called a
-              characteristic.
-            </dd>
+            <dd>A chain of masks, one per round, connecting a plaintext relation to a last-round relation.</dd>
             <dt>Known plaintext</dt>
             <dd>
               The attacker sees plaintext/ciphertext pairs but does not get to pick them. Weaker than the
@@ -222,80 +333,66 @@
             </dd>
           </dl>
         </details>
+        <details class="deep">
+          <summary>Where this comes from (primary sources)</summary>
+          <div>
+            <ul class="sources">
+              <li>
+                Mitsuru Matsui, <em>Linear Cryptanalysis Method for DES Cipher</em>, EUROCRYPT 1993 — the attack, the
+                piling-up lemma, and the success-rate table this demo reproduces in its tests.
+              </li>
+              <li>
+                Mitsuru Matsui, <em>The First Experimental Cryptanalysis of the Data Encryption Standard</em>, CRYPTO
+                1994 — full DES broken with 2⁴³ known plaintexts, executed in 50 days.
+              </li>
+              <li>
+                Howard Heys, <em>A Tutorial on Linear and Differential Cryptanalysis</em> — the S-box and worked
+                piling-up example used here, and the source of two of this demo's known-answer tests.
+              </li>
+              <li>
+                Bogdanov et al., <em>PRESENT: An Ultra-Lightweight Block Cipher</em>, CHES 2007 — the second S-box, and
+                the design criteria that cap its linear bias at 4/16.
+              </li>
+              <li>
+                Nyberg, <em>Linear Approximation of Block Ciphers</em>, EUROCRYPT 1994 — linear hulls, the reason the
+                lemma's prediction and the measured bias part company in exhibit 5.
+              </li>
+            </ul>
+          </div>
+        </details>
       </section>
 
-      <!-- ── 1. The cipher ──────────────────────────────────────────── -->
+      <!-- ══ 3. THE CIPHER ════════════════════════════════════════════ -->
       <section class="panel" aria-labelledby="cipher-h" id="cipher">
         <div class="panel-head">
-          <h2 id="cipher-h"><span class="step-num">1</span> The cipher under attack</h2>
+          <h2 id="cipher-h"><span class="step-num">3</span> Inspect the cipher</h2>
           <p class="panel-sub">
             An 8-bit block, a 16-bit key, and a 4-bit S-box applied to each nibble — the same toy SPN that
             <a href="https://systemslibrarian.github.io/crypto-lab-biham-lens/">Biham Lens</a> attacks with
-            differentials, so the two attacks can be compared on the same target.
+            differentials, so the two attacks can be compared on the same target. The highlighted state is what the
+            attack aims at: everything after it is one substitution and one XOR, which four guessed bits can undo.
           </p>
         </div>
-
-        <div class="controls" role="group" aria-label="Cipher configuration">
-          <div class="control">
-            <label for="sbox-select">S-box</label>
-            <div class="select-wrap">
-              <select id="sbox-select">
-                <option value="heys" selected>Heys (textbook toy)</option>
-                <option value="present">PRESENT (Bogdanov 2007)</option>
-              </select>
-            </div>
-            <p class="control-note" id="sbox-note"></p>
-          </div>
-          <div class="control">
-            <label for="rounds-select">Rounds</label>
-            <div class="select-wrap">
-              <select id="rounds-select">
-                <option value="2">2 — minimal</option>
-                <option value="3" selected>3 — reduced</option>
-                <option value="4">4 — full cipher</option>
-              </select>
-            </div>
-            <p class="control-note" id="rounds-note"></p>
-          </div>
-          <div class="control">
-            <label for="plaintext-input">Watch a plaintext go through</label>
-            <input id="plaintext-input" type="range" min="0" max="255" value="42" step="1" />
-            <p class="control-note" id="plaintext-note"></p>
-          </div>
-          <div class="control key-control">
-            <span class="control-label" id="key-label">Secret key (this session)</span>
-            <div class="key-row">
-              <output class="key-value" id="key-value" aria-labelledby="key-label">hidden</output>
-              <button type="button" class="btn btn-ghost" id="key-reveal" aria-pressed="false">Reveal</button>
-              <button type="button" class="btn btn-ghost" id="key-new">New key</button>
-            </div>
-            <p class="control-note">
-              Drawn from <code>crypto.getRandomValues()</code>, held in memory only, never persisted. The attack below
-              never reads it — it only checks its answer against it at the end.
-            </p>
-          </div>
+        <div class="control control-inline">
+          <label for="plaintext-input">Send a plaintext through</label>
+          <input id="plaintext-input" type="range" min="0" max="255" value="42" step="1" />
+          <p class="seg-note" id="plaintext-note"></p>
         </div>
-
         <div class="trace-wrap" id="trace-wrap" role="region" aria-label="Encryption walkthrough" tabindex="0">
           <div id="trace" class="trace"></div>
         </div>
-        <p class="footnote">
-          The last round's key XOR is the state the attack aims at: everything after it is one substitution and one
-          XOR, which four guessed bits can undo.
-        </p>
       </section>
 
-      <!-- ── 2. The LAT ─────────────────────────────────────────────── -->
+      <!-- ══ 4. THE LAT ═══════════════════════════════════════════════ -->
       <section class="panel" aria-labelledby="lat-h" id="lat">
         <div class="panel-head">
-          <h2 id="lat-h"><span class="step-num">2</span> Every leak the S-box has</h2>
+          <h2 id="lat-h"><span class="step-num">4</span> Inspect one S-box leak</h2>
           <p class="panel-sub">
             The <dfn>linear approximation table</dfn>. Each cell asks one question: over all 16 inputs, how often does
-            <em>this</em> XOR of input bits equal <em>that</em> XOR of output bits? A perfectly balanced table would be
-            entirely zeros. Pick any cell to see the 16 rows behind the number.
+            <em>this</em> XOR of input bits equal <em>that</em> XOR of output bits? A balanced table would be all zeros.
+            Ringed cells are the ones your attack is riding on. Select any cell to see the 16 rows behind its number.
           </p>
         </div>
-
         <div class="lat-layout">
           <div class="lat-grid-wrap" role="region" aria-label="Linear approximation table" tabindex="0">
             <table class="lat-table" id="lat-table">
@@ -309,21 +406,20 @@
         <p class="footnote" id="lat-summary"></p>
       </section>
 
-      <!-- ── 3. Piling up ───────────────────────────────────────────── -->
+      <!-- ══ 5. PILING UP ═════════════════════════════════════════════ -->
       <section class="panel" aria-labelledby="piling-h" id="piling">
         <div class="panel-head">
-          <h2 id="piling-h"><span class="step-num">3</span> Watch the bias compound</h2>
+          <h2 id="piling-h"><span class="step-num">5</span> Watch the bias compound</h2>
           <p class="panel-sub">
-            One leaky S-box is not an attack. The <dfn>piling-up lemma</dfn> says that when you chain biased relations
-            together, the biases multiply — and because each is smaller than 1/2, the chain gets weaker with every
-            round. That decay is the entire reason ciphers have round counts.
+            The <dfn>piling-up lemma</dfn>: chain biased relations together and the biases multiply. Because each is
+            smaller than 1/2, the chain gets weaker every round — which is the entire reason ciphers have round counts.
           </p>
         </div>
 
         <div class="piling-controls">
-          <button type="button" class="btn btn-primary" id="piling-step">Add the next round</button>
+          <button type="button" class="btn btn-primary" id="piling-step">Apply the first round</button>
           <button type="button" class="btn btn-ghost" id="piling-reset">Reset</button>
-          <p class="control-note" id="piling-status" role="status" aria-live="polite"></p>
+          <p class="seg-note" id="piling-status" role="status" aria-live="polite"></p>
         </div>
 
         <div class="piling-body">
@@ -340,81 +436,14 @@
         </details>
       </section>
 
-      <!-- ── 4. The attack ──────────────────────────────────────────── -->
-      <section class="panel attack-panel" aria-labelledby="attack-h" id="attack">
-        <div class="panel-head">
-          <h2 id="attack-h"><span class="step-num">4</span> Recover the key</h2>
-          <p class="panel-sub">
-            Matsui's Algorithm 2. Collect known plaintext, guess the four bits of the final subkey that cover one
-            nibble, undo the last substitution under each guess, and count how often the approximation holds. The
-            guess that shows the bias is the key.
-          </p>
-        </div>
-
-        <div class="controls" role="group" aria-label="Attack configuration">
-          <div class="control">
-            <label for="half-select">Target nibble of the final subkey</label>
-            <div class="select-wrap">
-              <select id="half-select">
-                <option value="high" selected>High — bits 7…4</option>
-                <option value="low">Low — bits 3…0</option>
-              </select>
-            </div>
-          </div>
-          <div class="control">
-            <label for="samples-input">Known plaintexts collected</label>
-            <input id="samples-input" type="range" min="4" max="13" value="10" step="1" />
-            <p class="control-note" id="samples-note"></p>
-          </div>
-          <div class="control">
-            <label for="approx-select">Approximation</label>
-            <div class="select-wrap">
-              <select id="approx-select">
-                <option value="auto" selected>Best one the search can verify</option>
-                <option value="ranked">Strongest by piling-up (unverified)</option>
-                <option value="custom">Pick the masks myself</option>
-              </select>
-            </div>
-            <p class="control-note" id="approx-note"></p>
-          </div>
-          <div class="control custom-masks" id="custom-masks" hidden>
-            <label for="mask-start">Plaintext mask (0–255)</label>
-            <input id="mask-start" type="number" min="0" max="255" value="9" />
-            <label for="mask-end">Last-round mask (0–255)</label>
-            <input id="mask-end" type="number" min="0" max="255" value="192" />
-            <p class="control-note" id="mask-note"></p>
-          </div>
-        </div>
-
-        <div class="attack-actions">
-          <button type="button" class="btn btn-primary" id="attack-run">Run the attack</button>
-          <button type="button" class="btn btn-ghost" id="attack-codebook">Use all 256 plaintexts</button>
-          <span class="approx-readout" id="approx-readout"></span>
-        </div>
-
-        <div id="attack-verdict" class="verdict" role="status" aria-live="polite"></div>
-        <div class="ranking-wrap" role="region" aria-label="Candidate key ranking" tabindex="0">
-          <table class="ranking" id="attack-ranking">
-            <caption class="sr-only">
-              Every candidate value for the target subkey nibble, with the bias its counter showed.
-            </caption>
-          </table>
-        </div>
-
-        <details class="deep">
-          <summary>Why the wrong guesses are not quite noise (the wrong-key hypothesis)</summary>
-          <div id="attack-screen"></div>
-        </details>
-      </section>
-
-      <!-- ── 5. Data requirement ────────────────────────────────────── -->
+      <!-- ══ 6. HOW MUCH TRAFFIC ══════════════════════════════════════ -->
       <section class="panel" aria-labelledby="samples-h" id="samples">
         <div class="panel-head">
-          <h2 id="samples-h"><span class="step-num">5</span> How much traffic do you need?</h2>
+          <h2 id="samples-h"><span class="step-num">6</span> How much traffic do you need?</h2>
           <p class="panel-sub">
-            Matsui's rule: the number of known plaintexts scales as the inverse square of the bias. Halve the bias —
-            one more round — and you need four times the data. The formula describes a single counter, though, and the
-            attack ranks sixteen. Below, the formula and the measurement side by side.
+            Matsui's rule: the number of known plaintexts scales as the inverse square of the bias. Halve the bias — one
+            more round — and you need four times the data. But the formula describes a single counter, and the attack
+            ranks sixteen. Below, the formula and the measurement side by side.
           </p>
         </div>
 
@@ -422,21 +451,23 @@
 
         <div class="measure">
           <button type="button" class="btn btn-primary" id="measure-run">Measure the real success rate</button>
-          <p class="control-note">
-            Runs the whole attack end to end over 60 random keys at each data size and counts how often it named the
-            key. Takes a moment — it is doing the work, not drawing a curve from the formula.
+          <button type="button" class="btn btn-ghost" id="measure-cancel" hidden>Cancel</button>
+          <p class="seg-note">
+            Runs the whole attack end to end over 60 random keys at each data size — 300 complete attacks, off the main
+            thread, with real progress. Not a curve drawn from the formula.
           </p>
-          <div id="measure-result" role="status" aria-live="polite"></div>
+          <div id="measure-progress" role="status" aria-live="polite"></div>
+          <div id="measure-result"></div>
         </div>
       </section>
 
-      <!-- ── 6. Comparison ──────────────────────────────────────────── -->
+      <!-- ══ 7. COMPARISON ════════════════════════════════════════════ -->
       <section class="panel" aria-labelledby="compare-h" id="compare">
         <div class="panel-head">
-          <h2 id="compare-h"><span class="step-num">6</span> The pair-mate attack</h2>
+          <h2 id="compare-h"><span class="step-num">7</span> The pair-mate attack</h2>
           <p class="panel-sub">
-            Differential and linear cryptanalysis arrived three years apart and are usually taught together. They
-            attack the same cipher from opposite directions.
+            Differential and linear cryptanalysis arrived three years apart and are usually taught together. They attack
+            the same cipher from opposite directions.
           </p>
         </div>
 
@@ -492,27 +523,28 @@
 
         <div class="callout">
           <p>
-            <strong>On this toy, the two attacks do not reach equally far</strong> — and that is worth knowing rather
-            than smoothing over. An 8-bit block gives a wrong key guess only 256 plaintexts to look wrong on, so the
-            noise floor for a linear counter sits near 1/16, which is the same order as a three-round bias. Differential
-            counting on this cipher works against a much quieter background. Verified here, exhaustively: no linear
-            approximation over three rounds recovers the four-round subkey nibble reliably, while two rounds fall
-            immediately. Set <em>Rounds</em> to 4 above and watch the ranking turn to noise.
+            <strong>On this toy, the two attacks do not reach equally far</strong> — worth knowing rather than smoothing
+            over. An 8-bit block gives a wrong key guess only 256 plaintexts to look wrong on, so the noise floor for a
+            linear counter sits near 1/16, the same order as a three-round bias. Differential counting on this cipher
+            works against a much quieter background. Verified here, exhaustively: no linear approximation over three
+            rounds recovers the four-round subkey nibble reliably, while two rounds fall immediately. That is what the
+            <em>Add a round</em> button is showing you.
           </p>
         </div>
       </section>
 
-      <!-- ── 7. Honesty ─────────────────────────────────────────────── -->
+      <!-- ══ 8. LIMITS ════════════════════════════════════════════════ -->
       <section class="panel honesty" aria-labelledby="honesty-h" id="honesty">
-        <h2 id="honesty-h">What this is, and what it does not prove</h2>
+        <h2 id="honesty-h"><span class="step-num">8</span> What this is, and what it does not prove</h2>
         <div class="honesty-grid">
           <div>
             <h3>Real</h3>
             <ul>
-              <li>The cipher is real code, not a story about a cipher — every ciphertext here came out of it.</li>
+              <li>The cipher is real code — every ciphertext here came out of it.</li>
               <li>The LAT is counted over all 16 inputs; nothing in it is asserted.</li>
               <li>The trail search is exhaustive over the 8-bit mask space, not a heuristic sample.</li>
               <li>The attack uses only plaintext/ciphertext pairs and its own guesses. It never reads the key.</li>
+              <li>Every counter you watch move is a count that was performed, including the partial ones.</li>
               <li>Biases labelled "measured" come from running the cipher over its entire 256-plaintext codebook.</li>
             </ul>
           </div>
@@ -528,8 +560,8 @@
                 designs, at a scale you can watch.
               </li>
               <li>
-                The key schedule is deliberately trivial. Recovering four bits of the final subkey here is not a full
-                key recovery, and the demo does not claim one.
+                The key schedule is deliberately trivial. Recovering four bits of the final subkey is not a full key
+                recovery, and the demo does not claim one.
               </li>
               <li>
                 No multidimensional or zero-correlation linear cryptanalysis, and no attack on real DES — all three are

@@ -12,12 +12,16 @@ The security model on display is deliberately generous to the attacker in one wa
 
 ## Exhibits
 
-1. **The cipher under attack** — pick the S-box (Heys' textbook toy, or PRESENT) and the round count, slide a plaintext through, and watch every intermediate state in binary. The last round's key XOR is marked: it is the state the attack aims at.
-2. **Every leak the S-box has** — the full 16×16 linear approximation table. Each cell is a button; selecting one shows all 16 inputs with both sides of the approximation computed independently and compared, so the table's number is visibly the sum of that column rather than a claim. Cells the current trail rides on are ringed.
-3. **Watch the bias compound** — step through the trail one round at a time and watch the piling-up lemma shrink the bias, shown in both its bias form (ε = 2ⁿ⁻¹ ∏ εᵢ) and its correlation form. A disclosure panel then measures the true bias by running the real cipher over all 256 plaintexts, for ten different keys — which is where the **linear hull effect** shows up: over two rounds the lemma is exact — every key gives |ε| = 1/8 on the nose and only the sign moves — while over three rounds the measured bias scatters with the key. Take the strongest three-round trail the lemma can find (the *unverified* setting in exhibit 4) and its true bias ranges from 5/64 down to *exactly zero* across ten keys, while the prediction sits unmoved at 27/512.
-4. **Recover the key** — Matsui's Algorithm 2. Choose the target nibble, the amount of traffic, and the approximation (screened, unscreened, or your own masks); the ranking of all sixteen candidates appears with the real key marked. Three levers break it: cut the data, add a round, or supply a hopeless approximation.
-5. **How much traffic do you need?** — Matsui's inverse-square rule, with the sample count for a target success rate, next to the **measured** success rate of the attack run end to end over 60 random keys per data size. The two disagree, and the panel explains why.
-6. **The pair-mate attack** — differential versus linear across seven properties, with the honest note about how far each reaches on a block this small.
+The page opens on the attack itself. Everything below it exists to explain the thing you just watched happen.
+
+1. **Break the toy cipher** — the cockpit. A hidden four-bit subkey, sixteen counters, and a Run button. Press it and the pairs are counted in front of you: the counters move because the numbers moved, and a partial count is exactly what an attacker with that much traffic would have. The key stays hidden until the count finishes. Four one-click scenarios try to break the attack — **starve it** (16 pairs), **add a round** (the leak shrinks below the noise), **bad relation** (an approximation with provably zero bias), **reset**. Changing any control that affects the outcome retires the result rather than leaving it under settings that did not produce it. *Copy experiment link* pins the key and seed so a surprising result is reproducible by whoever you send it to.
+2. **Why did that work?** — one connected chain from a single S-box's imbalance to one key candidate separating, each link showing the value your current settings actually produce, each link a link to the exhibit behind it.
+3. **Inspect the cipher** — send a plaintext through and watch every intermediate state in binary. The state the attack aims at is marked.
+4. **Inspect one S-box leak** — the full 16×16 linear approximation table. Each cell is a button; selecting one shows all 16 inputs with both sides of the approximation computed independently and compared, so the table's number is visibly the sum of that column rather than a claim. Cells the current trail rides on are ringed.
+5. **Watch the bias compound** — step through the trail one round at a time and watch the piling-up lemma shrink the bias, in both its bias form (ε = 2ⁿ⁻¹ ∏ εᵢ) and its correlation form, plus what each extra round costs in traffic. A disclosure panel then measures the true bias by running the real cipher over all 256 plaintexts for ten different keys — which is where the **linear hull effect** shows up: over two rounds the lemma is exact (every key gives |ε| = 1/8 on the nose; only the sign moves), while over three rounds the measured bias scatters with the key. Take the strongest three-round trail the lemma can find (the *strongest, unverified* setting in exhibit 1) and its true bias ranges from 5/64 down to *exactly zero* across ten keys, while the prediction sits unmoved at 27/512.
+6. **How much traffic do you need?** — Matsui's inverse-square rule, with the sample count for a target success rate, next to the **measured** success rate of the attack run end to end over 60 random keys per data size. That measurement is 300 complete attacks; it runs in a Web Worker and reports real progress, so it stays cancellable and the page stays responsive. The two curves disagree, and the panel explains why.
+7. **The pair-mate attack** — differential versus linear across seven properties, with the honest note about how far each reaches on a block this small.
+8. **Limits** — what is real here and what this does not prove.
 
 ## When to Use It
 
@@ -31,7 +35,9 @@ The security model on display is deliberately generous to the attacker in one wa
 
 **[systemslibrarian.github.io/crypto-lab-matsui-line](https://systemslibrarian.github.io/crypto-lab-matsui-line/)**
 
-Open it and the attack has already run against the whole codebook: one candidate stands alone at the top of the ranking, and it is the key. From there you can take the data away with the slider and watch it stop working, add the fourth round and watch the ranking dissolve into noise, swap the S-box, invent your own masks, or press *Measure the real success rate* and get a curve produced by running the attack 300 times rather than by evaluating a formula.
+Press **Run Matsui's attack** and watch sixteen counters resolve on real traffic until one candidate separates — then find out it was the key. From there: take the data away and watch it stop working, add the fourth round and watch the ranking dissolve into noise, swap the S-box, invent your own masks, or press *Measure the real success rate* and get a curve produced by running the attack 300 times rather than by evaluating a formula.
+
+Nothing is precomputed for show. Every counter that moves was counted, including the partial ones.
 
 ## What Can Go Wrong
 
@@ -71,7 +77,7 @@ npm run dev
 
 ## Build & Verify
 
-**84 unit tests** (Vitest, colocated in `src/`), including these known-answer tests:
+**88 unit tests** (Vitest, colocated in `src/`), including these known-answer tests:
 
 | KAT | Source | File |
 | --- | --- | --- |
@@ -84,11 +90,15 @@ npm run dev
 
 Beyond the KATs, the suite pins the claims the demo makes on screen: that the attack recovers the subkey nibble for every key over the full codebook; that it fails on the four-round cipher; that the LAT satisfies Parseval's identity and the trail correlations match a brute-force count over the real round function; and — exhaustively, over all 3,208 candidate mask pairs — that none of them names the correct low nibble for every test key under the Heys S-box, which is why the UI reports that nibble as resistant rather than showing an unexplained failure.
 
-**Accessibility is gated in CI.** `@axe-core/playwright` scans the production build for WCAG 2.1 A/AA violations in both themes and at a 380px viewport, after a spec that drives every exhibit into its post-interaction states — including all three attack verdicts, the rejected-mask state, and the measured success curve. Zero violations, or the deploy does not run.
+**14 behaviour tests** (Playwright, `e2e/behaviour.spec.ts`) cover what axe cannot — the demo's story and its state machine. Each pins the key and sampling seed through the URL, so a failure means the narrative changed, not that a random draw went the other way: the default scenario recovers the expected nibble; a failed attack never badges a wrong guess as the key; starved data reports honestly; changing a control retires the previous result; the key stays hidden until revealed or earned; a copied experiment link reproduces the ranking exactly; the primary action sits in the first viewport and is keyboard-reachable; reduced motion reaches the same final values without the counting animation; and no layout overflows at 320, 390, 768 or 1440px.
+
+**Accessibility is gated in CI.** `@axe-core/playwright` scans the production build for WCAG 2.1 A/AA violations in both themes and at a 380px viewport, after a spec that drives every exhibit into its post-interaction states — idle, counting, done, stale, and blocked; every scenario preset; the rejected-mask state; and the measured success curve. Zero violations, or the deploy does not run. (This gate has already caught two real defects: a hover state that dropped white-on-indigo to 4.46:1, and a muted-on-tinted LAT cell.)
+
+**Visual regression** (`npm run test:visual`) covers the cockpit after a successful break and after a failed one, in both themes. It is deliberately *not* part of the deploy gate: Playwright baselines are per-platform, and a macOS snapshot fails on the Linux runner for reasons unrelated to the change — a gate that cries wolf is a gate people learn to ignore.
 
 ## Performance
 
-Everything runs on the main thread with no backend. The trail search composes a 256×256 correlation matrix (~17M multiply-compares per round) and is memoised per S-box; screening runs the attack over the full codebook for twelve keys per candidate. The measured success-rate curve is the heaviest action on the page — 300 complete attacks — and takes on the order of a second.
+No backend; everything runs in the browser. The trail search composes a 256×256 correlation matrix (~17M multiply-compares per round), memoised per S-box; screening runs the attack over the full codebook for twelve keys per candidate. The attack itself precomputes the sixteen per-ciphertext parities once, so counting a batch stays cheap enough to run inside a frame without dropping the count. The success-rate measurement — 300 complete attacks — runs in a Web Worker with real progress reporting and can be cancelled.
 
 ---
 

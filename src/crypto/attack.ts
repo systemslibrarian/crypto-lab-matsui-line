@@ -107,7 +107,24 @@ export interface AttackOptions {
 
 const TIE_EPSILON = 1e-12;
 
-export function runAttack(options: AttackOptions): AttackResult {
+/**
+ * An attack in progress. The counters are the real thing at every point —
+ * `snapshot()` after 40 of 256 pairs reports exactly what an attacker who had
+ * seen 40 pairs would have. That is what lets the UI animate the count without
+ * animating a fiction: the bars move because the numbers moved.
+ */
+export interface AttackCounter {
+  /** Pairs consumed so far. */
+  readonly processed: number;
+  readonly total: number;
+  readonly done: boolean;
+  /** Consume the next `count` pairs. Returns how many were actually consumed. */
+  advance(count: number): number;
+  /** The result as it stands right now. */
+  snapshot(): AttackResult;
+}
+
+export function startAttack(options: AttackOptions): AttackCounter {
   const { sbox, key, cipherRounds, half, startMask, endMask, pairs } = options;
   const strayBits = half === 'low' ? endMask & 0xf0 : endMask & 0x0f;
   if (strayBits !== 0) {
@@ -118,15 +135,60 @@ export function runAttack(options: AttackOptions): AttackResult {
   if ((endMask & 0xff) === 0) throw new RangeError('end mask must be non-zero');
 
   const counts = new Array<number>(16).fill(0);
-  for (const { plaintext, ciphertext } of pairs) {
-    const lhs = dot(startMask, plaintext);
+  let processed = 0;
+
+  // The 16 peeled nibbles depend only on the ciphertext, so precomputing the
+  // per-ciphertext parities once keeps each batch cheap enough to run inside a
+  // frame without dropping the count.
+  const parityFor = new Uint8Array(256 * 16);
+  for (let c = 0; c < 256; c++) {
     for (let guess = 0; guess < 16; guess++) {
-      const nibble = peelLastRoundNibble(ciphertext, guess, half, sbox);
-      if (lhs === dot(endMask, placeNibble(nibble, half))) counts[guess]++;
+      const nibble = peelLastRoundNibble(c, guess, half, sbox);
+      parityFor[c * 16 + guess] = dot(endMask, placeNibble(nibble, half));
     }
   }
 
-  const total = pairs.length;
+  const advance = (count: number): number => {
+    const limit = Math.min(processed + Math.max(0, count), pairs.length);
+    let consumed = 0;
+    for (; processed < limit; processed++) {
+      const { plaintext, ciphertext } = pairs[processed];
+      const lhs = dot(startMask, plaintext);
+      const base = (ciphertext & 0xff) * 16;
+      for (let guess = 0; guess < 16; guess++) {
+        if (lhs === parityFor[base + guess]) counts[guess]++;
+      }
+      consumed++;
+    }
+    return consumed;
+  };
+
+  return {
+    get processed() {
+      return processed;
+    },
+    total: pairs.length,
+    get done() {
+      return processed >= pairs.length;
+    },
+    advance,
+    snapshot: () => score(counts, processed, key, cipherRounds, half),
+  };
+}
+
+export function runAttack(options: AttackOptions): AttackResult {
+  const counter = startAttack(options);
+  counter.advance(options.pairs.length);
+  return counter.snapshot();
+}
+
+function score(
+  counts: readonly number[],
+  total: number,
+  key: SpnKey,
+  cipherRounds: number,
+  half: NibbleHalf,
+): AttackResult {
   const scores: GuessScore[] = counts.map((matches, guess) => {
     const bias = total === 0 ? 0 : matches / total - 0.5;
     return { guess, matches, total, bias, deviation: Math.abs(bias) };
@@ -376,6 +438,8 @@ export interface MeasureOptions {
   readonly keyCount: number;
   readonly bias: number;
   readonly seed: number;
+  /** Called after each individual attack, so a worker can report real progress. */
+  readonly onProgress?: (completed: number, total: number) => void;
 }
 
 /**
@@ -385,10 +449,13 @@ export interface MeasureOptions {
  * describes the ranking of sixteen competing counters.
  */
 export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {
-  const { sbox, cipherRounds, half, startMask, endMask, sampleCounts, keyCount, bias, seed } = options;
+  const { sbox, cipherRounds, half, startMask, endMask, sampleCounts, keyCount, bias, seed, onProgress } =
+    options;
   const rng = mulberry32(seed);
   const masterKeys: number[] = [];
   for (let i = 0; i < keyCount; i++) masterKeys.push(((rng.nextByte() << 8) | rng.nextByte()) & 0xffff);
+  const totalTrials = sampleCounts.length * keyCount;
+  let completed = 0;
 
   return sampleCounts.map((samples) => {
     let outrightBreaks = 0;
@@ -400,6 +467,8 @@ export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {
       const result = runAttack({ sbox, key, cipherRounds, half, startMask, endMask, pairs });
       if (result.recovered) outrightBreaks++;
       if (result.recovered || result.tiedAtTop) correctInTop++;
+      completed++;
+      onProgress?.(completed, totalTrials);
     }
     return {
       samples,
