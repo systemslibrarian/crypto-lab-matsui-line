@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      (function () {
+        const saved = localStorage.getItem('theme');
+        document.documentElement.setAttribute('data-theme', saved ?? 'dark');
+      })();
+    </script>
+    <title>Matsui Line — crypto-lab</title>
+    <meta
+      name="description"
+      content="Linear cryptanalysis in the browser — the linear approximation table, the piling-up lemma, and Matsui's Algorithm 2 key recovery against a toy SPN."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Matsui Line — crypto-lab" />
+    <meta
+      property="og:description"
+      content="Linear cryptanalysis in the browser — the linear approximation table, the piling-up lemma, and Matsui's Algorithm 2 key recovery against a toy SPN."
+    />
+    <meta property="og:url" content="https://systemslibrarian.github.io/crypto-lab-matsui-line/" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Matsui Line — crypto-lab" />
+    <meta
+      name="twitter:description"
+      content="Linear cryptanalysis in the browser — the linear approximation table, the piling-up lemma, and Matsui's Algorithm 2 key recovery against a toy SPN."
+    />
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📐</text></svg>"
+    />
+  </head>
+  <body>
+<!-- BEGIN crypto-lab shared header — managed; edit shared-header.html + re-run reapply-header.py
+     Identical on every lab. Self-contained styles. Accents use each demo's own
+     --accent CSS variable (teal #35d6bb fallback). The ONLY per-repo value is the
+     repo name (crypto-lab-matsui-line) in the GitHub link.
+     Source of truth: github.com/systemslibrarian/crypto-lab/shared-header.html -->
+<style>
+  .cl-topbar{
+    /* The bar is always dark (#0b1512) regardless of page theme, so header
+       text must always be light. Mix each lab's --accent toward near-white so
+       the hue still tints the brand but contrast stays >=4.5:1 on the bar even
+       when a lab's accent is dark (e.g. a light-theme #1a56db). */
+    --cl-ink: color-mix(in srgb, var(--accent, #35d6bb) 60%, #eafff8);
+    display:flex;align-items:center;justify-content:space-between;gap:1rem;
+    padding:.7rem clamp(.9rem,3vw,2rem);
+    background:#0b1512;
+    border-bottom:1px solid color-mix(in srgb, var(--accent, #35d6bb) 22%, transparent);
+    font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    position:sticky;top:0;z-index:1000;
+  }
+  .cl-brand{display:flex;align-items:center;gap:.8rem;text-decoration:none}
+  .cl-badge{
+    flex:0 0 auto;display:grid;place-items:center;width:40px;height:40px;
+    border:1.5px solid var(--accent, #35d6bb);border-radius:10px;
+    color:var(--cl-ink);font-weight:700;font-size:.95rem;letter-spacing:.05em;
+  }
+  .cl-brand-text{display:flex;flex-direction:column;line-height:1.15}
+  .cl-title{color:#eafff8;font-weight:700;font-size:1.05rem;letter-spacing:.12em}
+  .cl-sub{color:#5e8b80;font-size:.72rem;letter-spacing:.04em}
+  .cl-actions{display:flex;align-items:center;gap:.5rem}
+  .cl-btn{
+    display:inline-flex;align-items:center;gap:.4rem;
+    padding:.5rem .85rem;border-radius:10px;
+    border:1px solid color-mix(in srgb, var(--accent, #35d6bb) 38%, transparent);
+    background:transparent;color:var(--cl-ink);cursor:pointer;
+    font:inherit;font-size:.78rem;font-weight:700;letter-spacing:.1em;
+    text-transform:uppercase;text-decoration:none;transition:background .15s,border-color .15s,color .15s;
+  }
+  .cl-btn:hover{
+    background:color-mix(in srgb, var(--accent, #35d6bb) 14%, transparent);
+    border-color:var(--accent, #35d6bb);color:#eafff8;
+  }
+  .cl-btn svg{width:15px;height:15px}
+  .cl-icon{padding:.5rem .6rem;font-size:.95rem}
+  /* Skip-to-content link: first focusable element so keyboard users can bypass
+     this sticky header (WCAG 2.4.1). Hidden until focused. Fixed light-on-dark
+     pair (not --accent, which can be a dark hue on some labs) keeps contrast AA. */
+  .cl-skip-link{
+    position:absolute;left:.5rem;top:-3rem;z-index:1001;
+    padding:.55rem 1rem;border-radius:0 0 10px 10px;
+    background:#eafff8;color:#0b1512;
+    font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    font-weight:700;font-size:.8rem;letter-spacing:.04em;text-decoration:none;
+    transition:top .15s ease;
+  }
+  .cl-skip-link:focus{top:0;outline:2px solid var(--accent,#35d6bb);outline-offset:2px;}
+  /* hide each lab's own in-page theme toggle — the bar's toggle replaces it.
+     element stays in the DOM so the lab's theme JS keeps working. */
+  body :is(#theme-toggle,#themeToggle,.theme-toggle,.theme-toggle-btn,[data-theme-toggle]):not(#cl-theme-toggle){display:none!important}
+  @media(max-width:560px){
+    .cl-sub{display:none}
+    .cl-btn span{display:none}
+    .cl-btn svg{margin:0}
+  }
+</style>
+<a class="cl-skip-link" href="#app">Skip to content</a>
+<header class="cl-topbar" role="banner" aria-label="Crypto Lab">
+  <a class="cl-brand" href="https://crypto-lab.systemslibrarian.dev/" aria-label="Crypto Lab home">
+    <span class="cl-badge">CL</span>
+    <span class="cl-brand-text">
+      <span class="cl-title">CRYPTO LAB</span>
+      <span class="cl-sub">systemslibrarian.dev</span>
+    </span>
+  </a>
+  <nav class="cl-actions" aria-label="Crypto Lab navigation">
+    <a class="cl-btn" href="https://crypto-lab.systemslibrarian.dev/" aria-label="Crypto Lab menu">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <span>Menu</span>
+    </a>
+    <a class="cl-btn" href="https://github.com/systemslibrarian/crypto-lab-matsui-line" target="_blank" rel="noopener" aria-label="View this project on GitHub">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.6v-2c-3.2.7-3.9-1.4-3.9-1.4-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7 0-.7 0-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.7 1.3 3.4 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.7 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.1 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0C17.3 5 18.3 5.3 18.3 5.3c.6 1.6.2 2.8.1 3.1.8.8 1.2 1.8 1.2 3.1 0 4.4-2.7 5.4-5.3 5.7.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+      <span>GitHub</span>
+    </a>
+    <button class="cl-btn cl-icon" id="cl-theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle theme">☀</button>
+  </nav>
+</header>
+<script>
+  (function () {
+    var t = document.getElementById('cl-theme-toggle');
+    if (t) {
+      var cur = function(){ return document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark'; };
+      var paint = function(){ t.textContent = cur() === 'light' ? '☾' : '☀'; };
+      paint();
+      t.addEventListener('click', function () {
+        var next = cur() === 'light' ? 'dark' : 'light';
+        document.documentElement.setAttribute('data-theme', next);
+        try { localStorage.setItem('theme', next); } catch (e) {}
+        paint();
+      });
+    }
+    // A page may have only one banner landmark. This shared site header is it;
+    // demote any banner a lab also declared on its own page header (explicit
+    // role="banner", or an implicit <header> child of <body>) so landmarks stay unique.
+    function dedupeBanner() {
+      var bar = document.querySelector('.cl-topbar');
+      if (!bar) return;
+      document.querySelectorAll('[role="banner"]').forEach(function (el) {
+        if (el !== bar) el.setAttribute('role', 'group');
+      });
+      Array.prototype.forEach.call(document.body ? document.body.children : [], function (el) {
+        if (el.tagName === 'HEADER' && el !== bar && !el.hasAttribute('role')) el.setAttribute('role', 'group');
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', dedupeBanner);
+    else dedupeBanner();
+  })();
+</script>
+<!-- END crypto-lab shared header -->
+    <main id="app" class="shell">
+      <header class="cl-hero">
+        <div class="cl-hero-main">
+          <h1 class="cl-hero-title">Matsui Line</h1>
+          <p class="cl-hero-sub">Linear cryptanalysis · piling-up lemma · Matsui 1993</p>
+          <p class="cl-hero-desc">
+            Counts a real S-box's linear leaks, compounds them across rounds with the piling-up lemma, and runs
+            Matsui's Algorithm 2 on known plaintext until the correct key nibble rises to the top of the ranking.
+          </p>
+        </div>
+        <aside class="cl-hero-why" aria-label="Why it matters">
+          <span class="cl-hero-why-label">WHY IT MATTERS</span>
+          <p class="cl-hero-why-text">
+            Linear cryptanalysis was the first attack to break full DES faster than brute force, and it needs no
+            control over the input at all — only enough ordinary traffic. Every block cipher designed since is
+            shaped by the need to survive it, which is why AES has the S-box it has.
+          </p>
+        </aside>
+      </header>
+
+      <!-- ── Plain-language on-ramp ─────────────────────────────────── -->
+      <section class="panel intro" aria-labelledby="intro-h">
+        <h2 id="intro-h">What is linear cryptanalysis?</h2>
+        <p class="lede">
+          A good cipher should behave like a fair coin: knowing some bits of the input should tell you exactly
+          nothing about the output. Real ciphers get close to that, but not all the way. Deep inside, small lookup
+          tables called <dfn>S-boxes</dfn> substitute one chunk of bits for another, and no small table is perfectly
+          balanced. For some combinations of input and output bits, the coin lands heads 12 times in 16 instead of 8.
+        </p>
+        <p>
+          That imbalance is called a <dfn>bias</dfn>, and on its own it is useless — one leaky S-box buried under
+          three more rounds of scrambling tells you nothing. Mitsuru Matsui's insight in 1993 was that biases
+          <em>compound</em>. Chain the leaks together and you get a statement about the plaintext and the last round
+          that is true slightly more often than half the time. Collect enough traffic, and "slightly more than half"
+          becomes a measurement — and a measurement is a key.
+        </p>
+        <p>
+          The attacker here never chooses a single plaintext. They watch ordinary encrypted traffic, guess four bits
+          of the final subkey, and check which guess makes the leak show up. The right guess is the one where the
+          bias appears. That is the whole attack, and you can run it below.
+        </p>
+        <details class="jargon">
+          <summary>The five words you need</summary>
+          <dl>
+            <dt>S-box</dt>
+            <dd>
+              A small substitution table — here, 4 bits in, 4 bits out. It is the only non-linear part of the cipher,
+              so it is the only part that can resist an attack made of linear equations.
+            </dd>
+            <dt>Mask</dt>
+            <dd>
+              A choice of which bits to add together. The mask <code>1001</code> means "take bit 3 XOR bit 0". Written
+              <code>&lt;a, x&gt;</code>, read "a dot x".
+            </dd>
+            <dt>Bias (ε)</dt>
+            <dd>
+              How far from a coin flip a relation is. If it holds 12 times in 16, the probability is 3/4 and the bias
+              is 3/4 − 1/2 = 1/4. Zero bias means no information.
+            </dd>
+            <dt>Trail</dt>
+            <dd>
+              A chain of masks, one per round, connecting a plaintext relation to a last-round relation. Also called a
+              characteristic.
+            </dd>
+            <dt>Known plaintext</dt>
+            <dd>
+              The attacker sees plaintext/ciphertext pairs but does not get to pick them. Weaker than the
+              <em>chosen</em>-plaintext access differential cryptanalysis needs — and far more realistic.
+            </dd>
+          </dl>
+        </details>
+      </section>
+
+      <!-- ── 1. The cipher ──────────────────────────────────────────── -->
+      <section class="panel" aria-labelledby="cipher-h" id="cipher">
+        <div class="panel-head">
+          <h2 id="cipher-h"><span class="step-num">1</span> The cipher under attack</h2>
+          <p class="panel-sub">
+            An 8-bit block, a 16-bit key, and a 4-bit S-box applied to each nibble — the same toy SPN that
+            <a href="https://systemslibrarian.github.io/crypto-lab-biham-lens/">Biham Lens</a> attacks with
+            differentials, so the two attacks can be compared on the same target.
+          </p>
+        </div>
+
+        <div class="controls" role="group" aria-label="Cipher configuration">
+          <div class="control">
+            <label for="sbox-select">S-box</label>
+            <div class="select-wrap">
+              <select id="sbox-select">
+                <option value="heys" selected>Heys (textbook toy)</option>
+                <option value="present">PRESENT (Bogdanov 2007)</option>
+              </select>
+            </div>
+            <p class="control-note" id="sbox-note"></p>
+          </div>
+          <div class="control">
+            <label for="rounds-select">Rounds</label>
+            <div class="select-wrap">
+              <select id="rounds-select">
+                <option value="2">2 — minimal</option>
+                <option value="3" selected>3 — reduced</option>
+                <option value="4">4 — full cipher</option>
+              </select>
+            </div>
+            <p class="control-note" id="rounds-note"></p>
+          </div>
+          <div class="control">
+            <label for="plaintext-input">Watch a plaintext go through</label>
+            <input id="plaintext-input" type="range" min="0" max="255" value="42" step="1" />
+            <p class="control-note" id="plaintext-note"></p>
+          </div>
+          <div class="control key-control">
+            <span class="control-label" id="key-label">Secret key (this session)</span>
+            <div class="key-row">
+              <output class="key-value" id="key-value" aria-labelledby="key-label">hidden</output>
+              <button type="button" class="btn btn-ghost" id="key-reveal" aria-pressed="false">Reveal</button>
+              <button type="button" class="btn btn-ghost" id="key-new">New key</button>
+            </div>
+            <p class="control-note">
+              Drawn from <code>crypto.getRandomValues()</code>, held in memory only, never persisted. The attack below
+              never reads it — it only checks its answer against it at the end.
+            </p>
+          </div>
+        </div>
+
+        <div class="trace-wrap" id="trace-wrap" role="region" aria-label="Encryption walkthrough" tabindex="0">
+          <div id="trace" class="trace"></div>
+        </div>
+        <p class="footnote">
+          The last round's key XOR is the state the attack aims at: everything after it is one substitution and one
+          XOR, which four guessed bits can undo.
+        </p>
+      </section>
+
+      <!-- ── 2. The LAT ─────────────────────────────────────────────── -->
+      <section class="panel" aria-labelledby="lat-h" id="lat">
+        <div class="panel-head">
+          <h2 id="lat-h"><span class="step-num">2</span> Every leak the S-box has</h2>
+          <p class="panel-sub">
+            The <dfn>linear approximation table</dfn>. Each cell asks one question: over all 16 inputs, how often does
+            <em>this</em> XOR of input bits equal <em>that</em> XOR of output bits? A perfectly balanced table would be
+            entirely zeros. Pick any cell to see the 16 rows behind the number.
+          </p>
+        </div>
+
+        <div class="lat-layout">
+          <div class="lat-grid-wrap" role="region" aria-label="Linear approximation table" tabindex="0">
+            <table class="lat-table" id="lat-table">
+              <caption class="sr-only">
+                Linear approximation table: bias of each input mask and output mask pair, as a count out of 16.
+              </caption>
+            </table>
+          </div>
+          <div class="lat-detail" id="lat-detail" role="status" aria-live="polite"></div>
+        </div>
+        <p class="footnote" id="lat-summary"></p>
+      </section>
+
+      <!-- ── 3. Piling up ───────────────────────────────────────────── -->
+      <section class="panel" aria-labelledby="piling-h" id="piling">
+        <div class="panel-head">
+          <h2 id="piling-h"><span class="step-num">3</span> Watch the bias compound</h2>
+          <p class="panel-sub">
+            One leaky S-box is not an attack. The <dfn>piling-up lemma</dfn> says that when you chain biased relations
+            together, the biases multiply — and because each is smaller than 1/2, the chain gets weaker with every
+            round. That decay is the entire reason ciphers have round counts.
+          </p>
+        </div>
+
+        <div class="piling-controls">
+          <button type="button" class="btn btn-primary" id="piling-step">Add the next round</button>
+          <button type="button" class="btn btn-ghost" id="piling-reset">Reset</button>
+          <p class="control-note" id="piling-status" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="piling-body">
+          <ol class="piling-rounds" id="piling-rounds"></ol>
+          <div class="piling-result" id="piling-result"></div>
+        </div>
+
+        <h3>What one more round costs the attacker</h3>
+        <div class="decay-wrap" id="piling-decay" role="region" aria-label="Bias decay by round count" tabindex="0"></div>
+
+        <details class="deep">
+          <summary>Does the lemma actually tell the truth? (measured against the real cipher)</summary>
+          <div id="piling-truth"></div>
+        </details>
+      </section>
+
+      <!-- ── 4. The attack ──────────────────────────────────────────── -->
+      <section class="panel attack-panel" aria-labelledby="attack-h" id="attack">
+        <div class="panel-head">
+          <h2 id="attack-h"><span class="step-num">4</span> Recover the key</h2>
+          <p class="panel-sub">
+            Matsui's Algorithm 2. Collect known plaintext, guess the four bits of the final subkey that cover one
+            nibble, undo the last substitution under each guess, and count how often the approximation holds. The
+            guess that shows the bias is the key.
+          </p>
+        </div>
+
+        <div class="controls" role="group" aria-label="Attack configuration">
+          <div class="control">
+            <label for="half-select">Target nibble of the final subkey</label>
+            <div class="select-wrap">
+              <select id="half-select">
+                <option value="high" selected>High — bits 7…4</option>
+                <option value="low">Low — bits 3…0</option>
+              </select>
+            </div>
+          </div>
+          <div class="control">
+            <label for="samples-input">Known plaintexts collected</label>
+            <input id="samples-input" type="range" min="4" max="13" value="10" step="1" />
+            <p class="control-note" id="samples-note"></p>
+          </div>
+          <div class="control">
+            <label for="approx-select">Approximation</label>
+            <div class="select-wrap">
+              <select id="approx-select">
+                <option value="auto" selected>Best one the search can verify</option>
+                <option value="ranked">Strongest by piling-up (unverified)</option>
+                <option value="custom">Pick the masks myself</option>
+              </select>
+            </div>
+            <p class="control-note" id="approx-note"></p>
+          </div>
+          <div class="control custom-masks" id="custom-masks" hidden>
+            <label for="mask-start">Plaintext mask (0–255)</label>
+            <input id="mask-start" type="number" min="0" max="255" value="9" />
+            <label for="mask-end">Last-round mask (0–255)</label>
+            <input id="mask-end" type="number" min="0" max="255" value="192" />
+            <p class="control-note" id="mask-note"></p>
+          </div>
+        </div>
+
+        <div class="attack-actions">
+          <button type="button" class="btn btn-primary" id="attack-run">Run the attack</button>
+          <button type="button" class="btn btn-ghost" id="attack-codebook">Use all 256 plaintexts</button>
+          <span class="approx-readout" id="approx-readout"></span>
+        </div>
+
+        <div id="attack-verdict" class="verdict" role="status" aria-live="polite"></div>
+        <div class="ranking-wrap" role="region" aria-label="Candidate key ranking" tabindex="0">
+          <table class="ranking" id="attack-ranking">
+            <caption class="sr-only">
+              Every candidate value for the target subkey nibble, with the bias its counter showed.
+            </caption>
+          </table>
+        </div>
+
+        <details class="deep">
+          <summary>Why the wrong guesses are not quite noise (the wrong-key hypothesis)</summary>
+          <div id="attack-screen"></div>
+        </details>
+      </section>
+
+      <!-- ── 5. Data requirement ────────────────────────────────────── -->
+      <section class="panel" aria-labelledby="samples-h" id="samples">
+        <div class="panel-head">
+          <h2 id="samples-h"><span class="step-num">5</span> How much traffic do you need?</h2>
+          <p class="panel-sub">
+            Matsui's rule: the number of known plaintexts scales as the inverse square of the bias. Halve the bias —
+            one more round — and you need four times the data. The formula describes a single counter, though, and the
+            attack ranks sixteen. Below, the formula and the measurement side by side.
+          </p>
+        </div>
+
+        <div class="calc" id="calc"></div>
+
+        <div class="measure">
+          <button type="button" class="btn btn-primary" id="measure-run">Measure the real success rate</button>
+          <p class="control-note">
+            Runs the whole attack end to end over 60 random keys at each data size and counts how often it named the
+            key. Takes a moment — it is doing the work, not drawing a curve from the formula.
+          </p>
+          <div id="measure-result" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <!-- ── 6. Comparison ──────────────────────────────────────────── -->
+      <section class="panel" aria-labelledby="compare-h" id="compare">
+        <div class="panel-head">
+          <h2 id="compare-h"><span class="step-num">6</span> The pair-mate attack</h2>
+          <p class="panel-sub">
+            Differential and linear cryptanalysis arrived three years apart and are usually taught together. They
+            attack the same cipher from opposite directions.
+          </p>
+        </div>
+
+        <div class="compare-wrap" role="region" aria-label="Differential versus linear cryptanalysis" tabindex="0">
+          <table class="compare">
+            <caption class="sr-only">Differential versus linear cryptanalysis, compared across seven properties.</caption>
+            <thead>
+              <tr>
+                <th scope="col">&nbsp;</th>
+                <th scope="col">Differential — Biham &amp; Shamir 1990</th>
+                <th scope="col">Linear — Matsui 1993</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Access needed</th>
+                <td><strong>Chosen</strong> plaintext — the attacker must submit pairs with a specific XOR difference.</td>
+                <td><strong>Known</strong> plaintext — the attacker only watches traffic. A much lower bar.</td>
+              </tr>
+              <tr>
+                <th scope="row">What propagates</th>
+                <td>A difference between two encryptions of the same key.</td>
+                <td>A parity relation over a single encryption.</td>
+              </tr>
+              <tr>
+                <th scope="row">The S-box table</th>
+                <td>Difference distribution table (DDT) — how often ΔX becomes ΔY.</td>
+                <td>Linear approximation table (LAT) — how often a bit parity survives.</td>
+              </tr>
+              <tr>
+                <th scope="row">How rounds compound</th>
+                <td>Probabilities multiply along a characteristic.</td>
+                <td>Correlations multiply — the piling-up lemma.</td>
+              </tr>
+              <tr>
+                <th scope="row">Cost measure</th>
+                <td>Pairs needed ≈ 1 / characteristic probability.</td>
+                <td>Known plaintexts needed ≈ 1 / bias².</td>
+              </tr>
+              <tr>
+                <th scope="row">Round keys</th>
+                <td>Cancel out of the difference entirely.</td>
+                <td>Flip the sign of the relation, never its strength.</td>
+              </tr>
+              <tr>
+                <th scope="row">Against full DES</th>
+                <td>2<sup>47</sup> chosen plaintexts — more than exist in practice.</td>
+                <td>2<sup>43</sup> known plaintexts — and Matsui actually ran it, in 1994, in 50 days.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout">
+          <p>
+            <strong>On this toy, the two attacks do not reach equally far</strong> — and that is worth knowing rather
+            than smoothing over. An 8-bit block gives a wrong key guess only 256 plaintexts to look wrong on, so the
+            noise floor for a linear counter sits near 1/16, which is the same order as a three-round bias. Differential
+            counting on this cipher works against a much quieter background. Verified here, exhaustively: no linear
+            approximation over three rounds recovers the four-round subkey nibble reliably, while two rounds fall
+            immediately. Set <em>Rounds</em> to 4 above and watch the ranking turn to noise.
+          </p>
+        </div>
+      </section>
+
+      <!-- ── 7. Honesty ─────────────────────────────────────────────── -->
+      <section class="panel honesty" aria-labelledby="honesty-h" id="honesty">
+        <h2 id="honesty-h">What this is, and what it does not prove</h2>
+        <div class="honesty-grid">
+          <div>
+            <h3>Real</h3>
+            <ul>
+              <li>The cipher is real code, not a story about a cipher — every ciphertext here came out of it.</li>
+              <li>The LAT is counted over all 16 inputs; nothing in it is asserted.</li>
+              <li>The trail search is exhaustive over the 8-bit mask space, not a heuristic sample.</li>
+              <li>The attack uses only plaintext/ciphertext pairs and its own guesses. It never reads the key.</li>
+              <li>Biases labelled "measured" come from running the cipher over its entire 256-plaintext codebook.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Not</h3>
+            <ul>
+              <li>
+                <strong>Not production cryptography.</strong> An 8-bit block is broken by definition — the codebook fits
+                on this page. It exists to make the attack visible.
+              </li>
+              <li>
+                Breaking this toy proves nothing about AES or DES. It shows the <em>mechanism</em> that forced their
+                designs, at a scale you can watch.
+              </li>
+              <li>
+                The key schedule is deliberately trivial. Recovering four bits of the final subkey here is not a full
+                key recovery, and the demo does not claim one.
+              </li>
+              <li>
+                No multidimensional or zero-correlation linear cryptanalysis, and no attack on real DES — all three are
+                far past what a browser tab should attempt.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <footer class="scripture-footer">
+        <p>
+          Related demos:
+          <a href="https://systemslibrarian.github.io/crypto-lab-biham-lens/">crypto-lab-biham-lens</a> ·
+          <a href="https://systemslibrarian.github.io/crypto-lab-aes-modes/">crypto-lab-aes-modes</a> ·
+          <a href="https://systemslibrarian.github.io/crypto-lab-enigma-forge/">crypto-lab-enigma-forge</a> ·
+          <a href="https://systemslibrarian.github.io/crypto-lab-vigenere-break/">crypto-lab-vigenere-break</a>
+        </p>
+        <p>So whether you eat or drink or whatever you do, do it all for the glory of God. — 1 Corinthians 10:31</p>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
