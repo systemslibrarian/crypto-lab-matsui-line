@@ -198,7 +198,6 @@ body {
 }
 
 /* ── Hero ─────────────────────────────────────────────────────────── */
-/* BEGIN cl-hero standard — managed, keep in sync across fleet */
 .cl-hero {
   display: flex;
   align-items: flex-start;
@@ -260,7 +259,6 @@ body {
     width: 100%;
   }
 }
-/* END cl-hero standard */
 
 /* Correction applied AFTER the managed block, never inside it: once .cl-hero
    flips to flex-direction:column, the standard's `flex:1 1 22rem` becomes a
@@ -924,6 +922,8 @@ details > dl {
 }
 
 .btn {
+  /* WCAG 2.5.5 — 44px minimum touch target. */
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
