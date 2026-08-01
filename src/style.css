@@ -11,7 +11,15 @@
   --panel: #161930;
   --panel-2: #1d2140;
   --border: #2f3459;
-  --border-strong: #4a507e;
+  /* Control boundaries (#app select, #app input[type='number'], and the .btn that
+     shares their rule) are drawn with --border-strong. Those controls are filled
+     with --panel-2 — only 1.23:1 against the panel behind them — so the border is
+     the only thing that makes the control visible, and WCAG 2.1 SC 1.4.11 requires
+     3:1. The old #4a507e measured 2.51:1 at best / 1.97:1 at worst; this value is
+     3.95:1 on --bg, 3.75:1 on --bg-2, 3.55:1 on --panel and 3.22:1 on --panel-2.
+     --border is unchanged and still carries the decorative rules (dividers, card
+     outlines, disabled states). */
+  --border-strong: #6a6f95;
 
   --text: #eef0fa;
   --text-dim: #c6cae6;
@@ -53,7 +61,9 @@
   --panel: #ffffff;
   --panel-2: #f3f4fd;
   --border: #d2d5ef;
-  --border-strong: #a3a8d4;
+  /* Control boundaries — 3.69:1 on --panel, 3.46:1 on --bg, 3.37:1 on --panel-2,
+     3.19:1 on --bg-2 (was 2.31:1 best / 1.92:1 worst). */
+  --border-strong: #7f83a5;
 
   --text: #13152a;
   --text-dim: #3a3e60;
