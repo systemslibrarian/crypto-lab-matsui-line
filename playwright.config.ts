@@ -1,9 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
-// 4266: unused by any sibling lab (the fleet holds 4208…4390 elsewhere). Never
+// 4665: unused by any sibling lab (the fleet holds 4208…4390 elsewhere). Never
 // 4173 — with 100+ labs checked out side by side, the Vite default means
 // `reuseExistingServer` can silently scan a different lab's preview.
-const PORT = 4266;
+const PORT = 4665;
 const BASE = '/crypto-lab-matsui-line/';
 
 export default defineConfig({
