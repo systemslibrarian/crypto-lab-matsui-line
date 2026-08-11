@@ -955,17 +955,26 @@ details > dl {
   border-color: var(--accent);
 }
 
+/* The border is NOT set to the fill colour here, which is what it used to do.
+   `.btn` gives every control a --border-strong edge precisely because a fill
+   alone does not delineate it; painting the border the same colour as the fill
+   threw that away for the three most important buttons on the page, and in the
+   dark theme --accent-fill measured 2.75:1 against --panel, 2.47:1 against the
+   cockpit's tinted head and 1.96:1 against the panel behind a finished run —
+   all under the 3:1 SC 1.4.11 floor. --accent-text is the same hue and measures
+   8.19:1 (dark) / 8.21:1 (light) against those surfaces. In the light theme the
+   fill alone already cleared it at 7.85:1; the ring is what fixes the dark. */
 .btn-primary {
   background-color: var(--accent-fill);
-  border-color: var(--accent-fill);
+  border-color: var(--accent-text);
   color: var(--accent-ink);
 }
 
 /* Hover DARKENS the fill. Lightening it toward --accent drops white text to
-   4.46:1 — a hover state is a state, and the gate scans it. */
+   4.46:1 — a hover state is a state, and the gate scans it. The border stays
+   --accent-text for the same reason it is set above. */
 .btn-primary:hover {
   background-color: var(--accent-fill-hover);
-  border-color: var(--accent-fill-hover);
 }
 
 .btn[disabled] {
@@ -1119,7 +1128,15 @@ details > dl {
   height: 1.6rem;
   display: grid;
   place-items: center;
-  border: 1px solid transparent;
+  /* Not `transparent`. These 256 cells are buttons, and with a transparent edge
+     the only thing separating one from the next was --grid-zero against the
+     wrapper's --panel-2 — 1.04:1 in both themes for an untinted cell, and never
+     better than 2.06:1 even for the loudest tint, so the grid had no
+     perceivable cell boundary at all (SC 1.4.11). --border-strong is the token
+     this stylesheet already designates for exactly this job and measures 3.32:1
+     against --grid-zero and 3.19:1 against the --panel-2 gap in the dark theme,
+     3.37:1 in the light one. The 1px width is unchanged, so nothing moves. */
+  border: 1px solid var(--border-strong);
   border-radius: 4px;
   background-color: var(--grid-zero);
   color: var(--text);
@@ -1651,6 +1668,17 @@ details > dl {
 .measure {
   border-top: 1px solid var(--border);
   padding-top: 1.1rem;
+}
+
+/* `renderCurve` wraps this table in `<div class="curve-wrap" role="region"
+   aria-label=… tabindex="0">` — the markup of a scroller — but no rule ever
+   made it one, so the table simply pushed the document sideways: 456px of
+   `white-space: nowrap` cells and an 8rem bar column at a 380px viewport took
+   the document to 487px (WCAG 1.4.10). The four sibling wrappers on this page
+   (`.ranking-wrap`, `.lat-grid-wrap`, `.trace-wrap`, `.compare-wrap`) all carry
+   this declaration; this one was the omission. */
+.curve-wrap {
+  overflow-x: auto;
 }
 
 .curve {
