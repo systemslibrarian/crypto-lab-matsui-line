@@ -586,21 +586,26 @@ export function reportCollected(): void {
 export async function scan(page: Page, label: string): Promise<void> {
   await settle(page);
   await expectNotBlank(page, label);
-  const results = await new AxeBuilder({ page })
-    .withTags(TAGS)
-    // These four are axe "best-practice" rules rather than WCAG-tagged ones, so
-    // `withTags` alone does not run them. This page has a shared sticky
-    // <header role="banner"> above a <main id="app"> that contains a second
-    // <header>, a hero <aside aria-label="Why it matters"> inside that, a
-    // <nav class="wayfinder">, and five aria-labelled regions — exactly the
-    // shape they catch, and none of them was enabled before.
-    .withRules([
-      'landmark-no-duplicate-banner',
-      'landmark-unique',
-      'landmark-one-main',
-      'landmark-complementary-is-top-level',
-    ])
-    .analyze();
+  // TWO axe runs, deliberately, and this is not a style choice.
+  //
+  // `AxeBuilder.withTags()` and `AxeBuilder.withRules()` both write `runOnly`,
+  // so the second call SILENTLY REPLACES the first — the axe-core/playwright
+  // source says so in as many words ("Cannot be used with AxeBuilder#withTags").
+  // Chained as `.withTags(TAGS).withRules([...])`, which is the form this gate
+  // was copied from, axe ran those best-practice rules and NOT ONE WCAG RULE.
+  // Measured on the source repo: the chained form executes 4 rules where
+  // `withTags` alone executes 63. A green result meant "no duplicate landmarks"
+  // and nothing whatever about WCAG A/AA, while reading like a full pass.
+  //
+  // Running the two sets separately and merging is the only way to have both.
+  // The landmark rules are wanted because they are best-practice rather than
+  // WCAG-tagged, so `withTags` alone does not reach them.
+  const wcag = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+  const landmarks = await new AxeBuilder({ page }).withRules([ 'landmark-no-duplicate-banner', 'landmark-unique', 'landmark-one-main', 'landmark-complementary-is-top-level', ]).analyze();
+  const results = {
+    violations: [...wcag.violations, ...landmarks.violations],
+    incomplete: [...wcag.incomplete, ...landmarks.incomplete],
+  };
 
   const violations = results.violations.map((v) => ({
     state: label,
