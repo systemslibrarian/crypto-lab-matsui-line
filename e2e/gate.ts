@@ -115,7 +115,7 @@ export async function settle(page: Page): Promise<void> {
  * beside the word carrying the same meaning, in the same ink on the same
  * surface.
  */
-async function expectNotBlank(page: Page, label: string): Promise<void> {
+export async function expectNotBlank(page: Page, label: string): Promise<void> {
   const invisible = await page.evaluate(() => {
     const out: string[] = [];
     for (const el of Array.from(document.querySelectorAll('body *'))) {
