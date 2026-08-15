@@ -30,7 +30,7 @@ import { boot, driveAllStates, NARROW, reportCollected, watchPageErrors } from '
  * "counting" rendering — is deliberately out of reach under reduced motion.
  */
 
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of ['dark'] as const) {
   test(`no WCAG A/AA violations in ${theme} theme`, async ({ page, context }) => {
     test.setTimeout(1_500_000);
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);

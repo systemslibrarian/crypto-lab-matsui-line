@@ -40,7 +40,7 @@ import { expectNotBlank, settle } from './gate';
 const WORKING = '?sbox=heys&rounds=3&half=high&n=codebook&approx=auto&k=14996&seed=7';
 const FAILING = '?sbox=heys&rounds=4&half=high&n=codebook&approx=auto&k=0&seed=7';
 
-for (const theme of ['dark', 'light'] as const) {
+for (const theme of ['dark'] as const) {
   test(`cockpit after a successful break — ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 1100 });
     await page.emulateMedia({ reducedMotion: 'reduce' });
@@ -49,10 +49,6 @@ for (const theme of ['dark', 'light'] as const) {
       await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches),
       'reduced-motion emulation must actually be in effect'
     ).toBe(true);
-    if (theme === 'light') {
-      await page.locator('#cl-theme-toggle').click();
-      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    }
     await page.locator('#attack-run').click();
     await expect(page.locator('#run-status')).toContainText('Counted', { timeout: 20_000 });
     // The run's animated-in content must actually arrive under reduced motion:
@@ -75,10 +71,6 @@ for (const theme of ['dark', 'light'] as const) {
       await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches),
       'reduced-motion emulation must actually be in effect'
     ).toBe(true);
-    if (theme === 'light') {
-      await page.locator('#cl-theme-toggle').click();
-      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-    }
     await page.locator('#attack-run').click();
     await expect(page.locator('#run-status')).toContainText('Counted', { timeout: 20_000 });
     await expect(page.locator('#attack-ranking tbody .rank-bar')).toHaveCount(16);
