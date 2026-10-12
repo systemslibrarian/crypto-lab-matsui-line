@@ -244,7 +244,9 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   // `main.ts` resolves every element through a `$()` that THROWS on a miss and
   // then renders seven panels, so a navigation that resolves proves nothing.
   await expect(page.locator('main#app')).toBeVisible();
-  await expect(page.locator('#app section')).toHaveCount(8);
+  await expect(page.locator('#app section')).toHaveCount(9);
+  await expect(page.locator('#reduced-chacha')).toBeVisible();
+  await expect(page.locator('#chacha-research-heading')).toHaveText('Research context: reduced-round ChaCha');
   await expect(page.locator('.wayfinder a')).toHaveCount(4);
 
   // ── The shipped experiment ───────────────────────────────────────────────
@@ -957,7 +959,11 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await page.click('#measure-run');
   await expect(page.locator('#measure-cancel')).toBeVisible();
   await expect(page.locator('#measure-run')).toBeDisabled();
-  await page.click('#measure-cancel');
+  // Keyboard activation avoids an extra mobile scroll/actionability wait
+  // racing this real worker to completion. The visible, enabled control and
+  // cancelled-result assertions still prove the actual cancellation path.
+  await expect(page.locator('#measure-cancel')).toBeEnabled();
+  await page.locator('#measure-cancel').press('Enter');
   await expect(page.locator('#measure-cancel')).toBeHidden();
   await expect(page.locator('#measure-progress')).toContainText('Measurement cancelled');
   await expect(page.locator('#measure-result')).toBeEmpty();
