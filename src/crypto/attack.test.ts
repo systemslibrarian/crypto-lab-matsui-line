@@ -171,7 +171,9 @@ describe('screening — a strong trail is not the same thing as a broken key', (
     }
     expect(anyAlwaysWorks).toBe(false);
     expect(selectApproximation(heys, 3, 'low')!.usable).toBe(false);
-  });
+    // Exhaustive screening took 6.8s on Node 24 / Vitest 5 in the 2026-10-21
+    // review. Keep every candidate and key; budget this case explicitly.
+  }, 20_000);
 
   it('still extracts information from a nibble it cannot pin down', () => {
     // "Not recovered" is not "learned nothing": the ranking still shrinks the
