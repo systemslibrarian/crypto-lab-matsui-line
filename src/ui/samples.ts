@@ -1,4 +1,4 @@
-import { requiredSamples, theoreticalSuccessRate, type SuccessPoint } from '../crypto/attack.js';
+import { finitePopulationCorrection, requiredSamples, theoreticalSuccessRate, wilsonInterval, type SuccessPoint } from '../crypto/attack.js';
 import { asFraction, percent } from './format.js';
 
 /**
@@ -86,6 +86,54 @@ export function renderCurve(el: HTMLElement, points: readonly SuccessPoint[]): v
       answers "will this counter lean the right way?", while the attack has to ask "will this counter out-lean fifteen
       others?". Ranking is the harder question, so it costs more data. ${costNote(points)}
     </p>
+  `;
+}
+
+/** Both sampling plans use the same 60 random keys at each data size. */
+export function renderSamplingComparison(
+  el: HTMLElement,
+  repeated: readonly SuccessPoint[],
+  distinct: readonly SuccessPoint[],
+): void {
+  const rateWithInterval = (point: SuccessPoint): string => {
+    const [low, high] = wilsonInterval(point.outrightBreaks, point.trials);
+    return `${percent(point.rate, 0)} <span class="control-note">(${percent(low, 0)}–${percent(high, 0)})</span>`;
+  };
+  const rows = repeated.map((withRepeats, i) => {
+    const withoutRepeats = distinct[i];
+    if (!withoutRepeats || withoutRepeats.samples !== withRepeats.samples || withoutRepeats.trials !== withRepeats.trials) {
+      throw new Error('sampling comparison rows must have matching counts and trials');
+    }
+    return `<tr>
+      <th scope="row" class="num">${withRepeats.samples}</th>
+      <td class="num">${withRepeats.meanUnique.toFixed(1)} / ${withRepeats.samples}</td>
+      <td class="num">${rateWithInterval(withRepeats)}</td>
+      <td class="num">${withoutRepeats.meanUnique.toFixed(0)} / ${withoutRepeats.samples}</td>
+      <td class="num">${rateWithInterval(withoutRepeats)}</td>
+      <td class="num">${finitePopulationCorrection(256, withRepeats.samples).toFixed(3)}</td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="curve-wrap" role="region" aria-label="Repeated versus distinct plaintext sampling" tabindex="0">
+      <table class="curve">
+        <caption class="sr-only">Attack success over ${repeated[0]?.trials ?? 0} toy keys per row, at equal sample counts.</caption>
+        <thead><tr>
+          <th scope="col">Pairs</th><th scope="col">Repeated: unique</th><th scope="col">Repeated: success (95% interval)</th>
+          <th scope="col">Distinct: unique</th><th scope="col">Distinct: success (95% interval)</th>
+          <th scope="col">Variance factor</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <p class="control-note">These are complete key-ranking attacks over the same ${repeated[0]?.trials ?? 0} random toy keys per row.
+      The parenthesized Wilson intervals describe uncertainty in the measured <em>across-key success proportion</em>,
+      not a guarantee for any key or a proof against a real cipher. Distinct traffic is sampled randomly from the
+      256-plaintext codebook; it is not a chosen-plaintext oracle. At 256 distinct pairs the entire codebook is seen.</p>
+    <p class="control-note">For a fixed key with a relation that holds on fraction <em>p</em> of the codebook,
+      the count variance for N distinct draws is Np(1−p) × (256−N)/255 versus Np(1−p) for draws with replacement.
+      The final column is this finite-population factor; at N=256 it is zero. It describes a single counter’s
+      sampling variance, not the variance of attack success across keys or the ranking of 16 candidates.
+      <a href="https://www.cambridge.org/core/books/abs/linear-cryptanalysis/statistics-of-linear-cryptanalysis/4233F6B7EFEC3E49BDE1958049BAA16C" target="_blank" rel="noopener noreferrer">Beyne and Rijmen, <cite>Linear Cryptanalysis</cite> (2025), ch. 4</a>.</p>
   `;
 }
 

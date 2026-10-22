@@ -455,10 +455,16 @@
 
         <div class="measure">
           <button type="button" class="btn btn-primary" id="measure-run">Measure the real success rate</button>
+          <button type="button" class="btn btn-ghost" id="measure-compare">Compare repeated and distinct traffic</button>
           <button type="button" class="btn btn-ghost" id="measure-cancel" hidden>Cancel</button>
           <p class="seg-note">
             Runs the whole attack end to end over 60 random keys at each data size — 300 complete attacks, off the main
             thread, with real progress. Not a curve drawn from the formula.
+          </p>
+          <p class="seg-note">
+            The comparison runs the same key-ranking attack at 16, 64, 128 and 256 pairs under each sampling plan.
+            The original 60-key success curves above remain available; the comparison measures duplicate inputs and
+            reports uncertainty across keys. This 8-bit cipher has only 256 possible plaintexts.
           </p>
           <div id="measure-progress" role="status" aria-live="polite"></div>
           <div id="measure-result"></div>

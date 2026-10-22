@@ -58,6 +58,38 @@ export function collectKnownPairs(
   return pairs;
 }
 
+/**
+ * A uniformly shuffled prefix of the 256 possible plaintexts. This models a
+ * deduplicated data set, not a chosen-plaintext oracle: the attacker does not
+ * choose the values, and every subset of a given size is equally likely.
+ */
+export function collectDistinctKnownPairs(
+  key: SpnKey,
+  sbox: Sbox,
+  cipherRounds: number,
+  count: number,
+  rng: Rng,
+): KnownPair[] {
+  if (!Number.isInteger(count) || count < 0 || count > 256) {
+    throw new RangeError('distinct sample count must be an integer from 0 to 256');
+  }
+  const available = Uint8Array.from({ length: 256 }, (_, i) => i);
+  const pairs: KnownPair[] = [];
+  for (let i = 0; i < count; i++) {
+    const remaining = 256 - i;
+    // Reject the uneven tail of a byte before taking a modulus. Fisher–Yates
+    // then samples every ordered prefix (and hence subset) uniformly.
+    const limit = 256 - (256 % remaining);
+    let byte: number;
+    do byte = rng.nextByte(); while (byte >= limit);
+    const index = i + (byte % remaining);
+    [available[i], available[index]] = [available[index], available[i]];
+    const plaintext = available[i];
+    pairs.push({ plaintext, ciphertext: encrypt(plaintext, key, sbox, cipherRounds) });
+  }
+  return pairs;
+}
+
 /** Every plaintext exactly once — the entire population, no sampling error. */
 export function fullCodebook(key: SpnKey, sbox: Sbox, cipherRounds: number): KnownPair[] {
   const pairs: KnownPair[] = new Array(256);
@@ -426,6 +458,31 @@ export interface SuccessPoint {
   readonly rate: number;
   /** The theoretical Algorithm-1 rate at this sample count, for comparison. */
   readonly theoretical: number;
+  /** Mean number of distinct plaintexts, across the same toy-key trials. */
+  readonly meanUnique: number;
+}
+
+export type SamplingMode = 'repeated' | 'distinct';
+
+/** Variance multiplier for draws without replacement from a finite population. */
+export function finitePopulationCorrection(population: number, samples: number): number {
+  if (!Number.isInteger(population) || population < 2 || !Number.isInteger(samples) || samples < 0 || samples > population) {
+    throw new RangeError('need a population of at least 2 and a sample count within it');
+  }
+  return (population - samples) / (population - 1);
+}
+
+/** Wilson score interval for an observed binary success rate (z = 1.96). */
+export function wilsonInterval(successes: number, trials: number): readonly [number, number] {
+  if (!Number.isInteger(trials) || trials < 1 || !Number.isInteger(successes) || successes < 0 || successes > trials) {
+    throw new RangeError('successes must be between 0 and a positive number of trials');
+  }
+  const z = 1.96;
+  const p = successes / trials;
+  const denominator = 1 + (z * z) / trials;
+  const center = (p + (z * z) / (2 * trials)) / denominator;
+  const width = (z / denominator) * Math.sqrt((p * (1 - p)) / trials + (z * z) / (4 * trials * trials));
+  return [successes === 0 ? 0 : Math.max(0, center - width), successes === trials ? 1 : Math.min(1, center + width)];
 }
 
 export interface MeasureOptions {
@@ -438,6 +495,7 @@ export interface MeasureOptions {
   readonly keyCount: number;
   readonly bias: number;
   readonly seed: number;
+  readonly sampling?: SamplingMode;
   /** Called after each individual attack, so a worker can report real progress. */
   readonly onProgress?: (completed: number, total: number) => void;
 }
@@ -449,7 +507,7 @@ export interface MeasureOptions {
  * describes the ranking of sixteen competing counters.
  */
 export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {
-  const { sbox, cipherRounds, half, startMask, endMask, sampleCounts, keyCount, bias, seed, onProgress } =
+  const { sbox, cipherRounds, half, startMask, endMask, sampleCounts, keyCount, bias, seed, onProgress, sampling = 'repeated' } =
     options;
   const rng = mulberry32(seed);
   const masterKeys: number[] = [];
@@ -460,10 +518,14 @@ export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {
   return sampleCounts.map((samples) => {
     let outrightBreaks = 0;
     let correctInTop = 0;
+    let uniqueSum = 0;
     for (let i = 0; i < masterKeys.length; i++) {
       const key = generateKey(masterKeys[i]);
       const dataRng = mulberry32((seed ^ (samples * 0x9e3779b1) ^ (i * 0x85ebca6b)) >>> 0);
-      const pairs = collectKnownPairs(key, sbox, cipherRounds, samples, dataRng);
+      const pairs = sampling === 'distinct'
+        ? collectDistinctKnownPairs(key, sbox, cipherRounds, samples, dataRng)
+        : collectKnownPairs(key, sbox, cipherRounds, samples, dataRng);
+      uniqueSum += new Set(pairs.map((pair) => pair.plaintext)).size;
       const result = runAttack({ sbox, key, cipherRounds, half, startMask, endMask, pairs });
       if (result.recovered) outrightBreaks++;
       if (result.recovered || result.tiedAtTop) correctInTop++;
@@ -477,6 +539,7 @@ export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {
       correctInTop,
       rate: outrightBreaks / masterKeys.length,
       theoretical: theoreticalSuccessRate(bias, samples),
+      meanUnique: uniqueSum / masterKeys.length,
     };
   });
 }

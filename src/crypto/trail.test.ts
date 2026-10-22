@@ -235,6 +235,13 @@ describe('exact bias vs the piling-up prediction', () => {
     for (const b of biases) expect(Math.abs(b)).toBeGreaterThan(0.01);
   });
 
+  it('has a three-round hull that cancels for one key but not another', () => {
+    const zero = exactBias(heys, generateKey(0x0000), 4, 0x01, 0x50);
+    const nonzero = exactBias(heys, generateKey(0x1234), 4, 0x01, 0x50);
+    expect(zero).toBe(0); // 128 of 256 plaintexts match
+    expect(nonzero).toBe(1 / 128); // 130 of 256 plaintexts match
+  });
+
   it('vanishes for an approximation with no trail through the S-boxes', () => {
     // Mask 0 on the output side reads no bits: the relation degenerates and can
     // carry no key information.

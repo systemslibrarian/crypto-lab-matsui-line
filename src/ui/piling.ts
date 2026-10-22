@@ -179,5 +179,15 @@ export function renderTrailTruth(
           .join('  ·  '),
       )}
     </p>
+    <p class="control-note">
+      A fixed round-key XOR changes an <em>individual trail’s</em> correlation sign, not its magnitude.
+      A complete linear approximation sums several signed trails; their combined bias can change with the key or
+      become zero. See <a href="https://eprint.iacr.org/2016/088" target="_blank" rel="noopener noreferrer"><cite>On Linear Hulls and Trails</cite> (2016)</a>
+      and Beyne and Rijmen, <cite>Linear Cryptanalysis</cite> (2025), ch. 2.
+      This eight-bit measurement illustrates the mechanism; it does not establish an attack on a modern cipher.
+    </p>
+    <p class="control-note">A reproducible example in this toy: across the three rounds before the last S-box,
+      the Heys relation 0x01 → 0x50 matches 128/256 plaintexts with master key 0x0000 (zero bias),
+      versus 130/256 with 0x1234 (bias 1/128). The regression test counts all 256 inputs for both keys.</p>
   `;
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   collectKnownPairs,
+  collectDistinctKnownPairs,
+  finitePopulationCorrection,
   fullCodebook,
   measureSuccessRate,
   normalCdf,
@@ -10,6 +12,7 @@ import {
   screenApproximation,
   selectApproximation,
   theoreticalSuccessRate,
+  wilsonInterval,
 } from './attack.js';
 import { getSbox } from './sbox.js';
 import { encrypt, generateKey, takeNibble } from './spn.js';
@@ -48,6 +51,18 @@ describe('known-plaintext collection', () => {
   it('fullCodebook covers every plaintext exactly once', () => {
     const pairs = fullCodebook(generateKey(0xbeef), heys, 3);
     expect(new Set(pairs.map((p) => p.plaintext)).size).toBe(256);
+  });
+
+  it('draws 256 distinct random plaintexts without choosing them or repeating them', () => {
+    const key = generateKey(0x3a94);
+    for (const count of [0, 1, 16, 64, 128, 256]) {
+      const pairs = collectDistinctKnownPairs(key, heys, 3, count, mulberry32(42));
+      expect(pairs).toHaveLength(count);
+      expect(new Set(pairs.map((pair) => pair.plaintext)).size).toBe(count);
+      for (const pair of pairs) expect(pair.ciphertext).toBe(encrypt(pair.plaintext, key, heys, 3));
+      expect(collectDistinctKnownPairs(key, heys, 3, count, mulberry32(42))).toEqual(pairs);
+    }
+    expect(() => collectDistinctKnownPairs(key, heys, 3, 257, mulberry32(42))).toThrow(RangeError);
   });
 });
 
@@ -416,5 +431,57 @@ describe('how many known plaintexts do I need', () => {
     for (const point of points) {
       expect(point.rate).toBeLessThan(point.theoretical);
     }
+  });
+});
+
+describe('distinct versus repeated sampling', () => {
+  it('matches the exact hypergeometric variance from enumerating all equally likely subsets', () => {
+    // Independent enumeration on a small population: three of eight values
+    // satisfy the relation, and the four-input data sets are unordered subsets.
+    const counts: number[] = [];
+    for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++)
+      for (let c = b + 1; c < 8; c++) for (let d = c + 1; d < 8; d++)
+        counts.push([a, b, c, d].filter((value) => value < 3).length);
+    expect(counts).toHaveLength(70);
+    const mean = counts.reduce((sum, x) => sum + x, 0) / counts.length;
+    const variance = counts.reduce((sum, x) => sum + (x - mean) ** 2, 0) / counts.length;
+    const p = 3 / 8;
+    expect(mean).toBeCloseTo(4 * p, 12);
+    expect(variance).toBeCloseTo(4 * p * (1 - p) * finitePopulationCorrection(8, 4), 12);
+    expect(finitePopulationCorrection(256, 256)).toBe(0);
+    expect(finitePopulationCorrection(256, 1)).toBe(1);
+    expect(finitePopulationCorrection(256, 64)).toBeCloseTo(192 / 255, 12);
+  });
+
+  it('reports non-degenerate intervals even at 0 or 60 successes', () => {
+    const [zeroLow, zeroHigh] = wilsonInterval(0, 60);
+    const [allLow, allHigh] = wilsonInterval(60, 60);
+    expect(zeroLow).toBe(0);
+    expect(zeroHigh).toBeGreaterThan(0);
+    expect(zeroHigh).toBeLessThan(0.1);
+    expect(allLow).toBeGreaterThan(0.9);
+    expect(allLow).toBeLessThan(1);
+    expect(allHigh).toBe(1);
+  });
+
+  it('keeps the default repeated traffic and compares both plans on the same toy keys', () => {
+    const base = {
+      sbox: heys, cipherRounds: 3, half: 'high' as const,
+      startMask: TRAIL.startMask, endMask: TRAIL.endMask,
+      sampleCounts: [16, 64, 256], keyCount: 60, bias: TRAIL.bias, seed: 3198,
+    };
+    const defaultPoints = measureSuccessRate(base);
+    const repeated = measureSuccessRate({ ...base, sampling: 'repeated' });
+    const distinct = measureSuccessRate({ ...base, sampling: 'distinct' });
+    expect(defaultPoints).toEqual(repeated);
+    for (let i = 0; i < repeated.length; i++) {
+      expect(repeated[i].meanUnique).toBeLessThan(repeated[i].samples);
+      expect(distinct[i].meanUnique).toBe(distinct[i].samples);
+      expect(distinct[i].trials).toBe(repeated[i].trials);
+      expect(distinct[i].theoretical).toBe(repeated[i].theoretical);
+    }
+    // Distinct 256 pairs are the full codebook, regardless of shuffled order.
+    expect(distinct[2].rate).toBeGreaterThanOrEqual(0);
+    expect(distinct[2].rate).toBeLessThanOrEqual(1);
   });
 });

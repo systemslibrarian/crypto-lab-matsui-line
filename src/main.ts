@@ -11,7 +11,6 @@ import {
   type AttackCounter,
   type AttackResult,
   type SelectedApproximation,
-  type SuccessPoint,
 } from './crypto/attack.js';
 import {
   bestTrail,
@@ -47,7 +46,7 @@ import {
   type CockpitPhase,
   type MechanismStage,
 } from './ui/cockpit.js';
-import { renderCalculator, renderCurve } from './ui/samples.js';
+import { renderCalculator, renderCurve, renderSamplingComparison } from './ui/samples.js';
 import { asFraction, esc, hex, magnitude, maskTerms, maskTermsPlain, percent } from './ui/format.js';
 import type { MeasureMessage, MeasureRequest } from './workers/measure.worker.js';
 
@@ -753,6 +752,7 @@ $('piling-reset').addEventListener('click', () => {
 /* ── Measurement, off the main thread ──────────────────────────────── */
 
 const SAMPLE_COUNTS = [16, 64, 256, 1024, 4096];
+const COMPARE_COUNTS = [16, 64, 128, 256];
 const MEASURE_KEYS = 60;
 
 function stopMeasurement(): void {
@@ -760,18 +760,20 @@ function stopMeasurement(): void {
   view.measureWorker = null;
   $<HTMLButtonElement>('measure-run').disabled = false;
   $<HTMLButtonElement>('measure-run').textContent = 'Measure again';
+  $<HTMLButtonElement>('measure-compare').disabled = false;
+  $<HTMLButtonElement>('measure-compare').textContent = 'Compare sampling again';
   $('measure-cancel').hidden = true;
 }
 
-$('measure-run').addEventListener('click', () => {
+function startMeasurement(comparison: boolean): void {
   const approximation = currentApproximation();
   if (approximation.error) {
     $('measure-progress').innerHTML = '<p>Fix the approximation in exhibit 1 first.</p>';
     return;
   }
-  const button = $<HTMLButtonElement>('measure-run');
-  button.disabled = true;
-  button.textContent = 'Measuring…';
+  $<HTMLButtonElement>('measure-run').disabled = true;
+  $<HTMLButtonElement>('measure-compare').disabled = true;
+  $<HTMLButtonElement>(comparison ? 'measure-compare' : 'measure-run').textContent = 'Measuring…';
   $('measure-cancel').hidden = false;
 
   const request: MeasureRequest = {
@@ -780,28 +782,38 @@ $('measure-run').addEventListener('click', () => {
     half: experiment.half,
     startMask: approximation.startMask,
     endMask: approximation.endMask,
-    sampleCounts: SAMPLE_COUNTS,
+    sampleCounts: comparison ? COMPARE_COUNTS : SAMPLE_COUNTS,
     keyCount: MEASURE_KEYS,
     bias: approximation.trail?.bias ?? 0,
     seed: experiment.seed ?? randomSeed(),
+    comparison,
+  };
+  const attacks = request.sampleCounts.length * MEASURE_KEYS * (comparison ? 2 : 1);
+
+  const showResult = (message: Extract<MeasureMessage, { kind: 'done' | 'comparison' }>): void => {
+    if (message.kind === 'comparison') renderSamplingComparison($('measure-result'), message.repeated, message.distinct);
+    else renderCurve($('measure-result'), message.points);
+    $('measure-progress').innerHTML = `<p class="seg-note">${attacks.toLocaleString()} complete attacks run, seed <code>${message.seed}</code>.</p>`;
+    stopMeasurement();
   };
 
-  const showResult = (points: SuccessPoint[], seed: number): void => {
-    renderCurve($('measure-result'), points);
-    $('measure-progress').innerHTML = `<p class="seg-note">${(
-      SAMPLE_COUNTS.length * MEASURE_KEYS
-    ).toLocaleString()} complete attacks run, seed <code>${seed}</code>.</p>`;
-    stopMeasurement();
+  const fallback = (): void => {
+    const base = { ...request, sbox: currentSbox() };
+    const repeated = measureSuccessRate({ ...base, sampling: 'repeated' });
+    const message: Extract<MeasureMessage, { kind: 'done' | 'comparison' }> = comparison
+      ? { kind: 'comparison', repeated, distinct: measureSuccessRate({ ...base, sampling: 'distinct' }), seed: request.seed }
+      : { kind: 'done', points: repeated, seed: request.seed };
+    showResult(message);
   };
 
   try {
     const worker = new Worker(new URL('./workers/measure.worker.ts', import.meta.url), { type: 'module' });
     view.measureWorker = worker;
-    renderMeasureProgress($('measure-progress'), 0, SAMPLE_COUNTS.length * MEASURE_KEYS);
+    renderMeasureProgress($('measure-progress'), 0, attacks);
     worker.onmessage = (event: MessageEvent<MeasureMessage>) => {
       const message = event.data;
       if (message.kind === 'progress') renderMeasureProgress($('measure-progress'), message.completed, message.total);
-      else if (message.kind === 'done') showResult(message.points, message.seed);
+      else if (message.kind === 'done' || message.kind === 'comparison') showResult(message);
       else {
         $('measure-progress').innerHTML = `<p>Measurement failed: ${esc(message.message)}</p>`;
         stopMeasurement();
@@ -810,13 +822,16 @@ $('measure-run').addEventListener('click', () => {
     worker.onerror = () => {
       // No worker available (older browser, blocked module worker): do it here.
       stopMeasurement();
-      showResult(measureSuccessRate({ ...request, sbox: currentSbox() }), request.seed);
+      fallback();
     };
     worker.postMessage(request);
   } catch {
-    showResult(measureSuccessRate({ ...request, sbox: currentSbox() }), request.seed);
+    fallback();
   }
-});
+}
+
+$('measure-run').addEventListener('click', () => startMeasurement(false));
+$('measure-compare').addEventListener('click', () => startMeasurement(true));
 
 $('measure-cancel').addEventListener('click', () => {
   stopMeasurement();

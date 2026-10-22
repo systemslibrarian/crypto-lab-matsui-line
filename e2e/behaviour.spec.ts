@@ -13,6 +13,20 @@ const WORKING = '?sbox=heys&rounds=3&half=high&n=codebook&approx=auto&k=14996';
 /** k=0 at four rounds: the correct nibble ranks third, and must not be claimed. */
 const FAILING = '?sbox=heys&rounds=4&half=high&n=codebook&approx=auto&k=0';
 
+test('sampling comparison shows unique coverage and uncertainty while retaining the original curve', async ({ page }) => {
+  await page.goto(`.${WORKING}&seed=3198`);
+  await page.locator('#measure-compare').click();
+  await expect(page.locator('#measure-result .curve tbody tr')).toHaveCount(4, { timeout: 180_000 });
+  const fullCodebook = page.locator('#measure-result .curve tbody tr').last();
+  await expect(fullCodebook).toContainText('256 / 256');
+  await expect(page.locator('#measure-result')).toContainText('Wilson intervals');
+  await expect(page.locator('#measure-result')).toContainText('not a guarantee for any key');
+  await expect(page.locator('#measure-result a[href*="cambridge.org"]')).toBeVisible();
+  await page.locator('#measure-run').click();
+  await expect(page.locator('#measure-result .curve tbody tr')).toHaveCount(5, { timeout: 180_000 });
+  await expect(page.locator('#measure-result')).toContainText("Matsui's single-counter prediction");
+});
+
 async function run(page: Page): Promise<void> {
   await page.locator('#attack-run').click();
   await expect(page.locator('#run-status')).toContainText('Counted', { timeout: 20_000 });

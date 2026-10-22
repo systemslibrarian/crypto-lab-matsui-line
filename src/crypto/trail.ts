@@ -68,8 +68,9 @@ export function sboxLayerCorrelation(lat: LatTable, alpha: number, gamma: number
  * Correlation of one whole round (S-box layer then bit permutation) from the
  * mask on this round's S-box input to the mask on the next round's S-box
  * input. The round-key XOR is absent on purpose: XORing a constant cannot
- * change how often a parity relation holds, it can only flip its sign — which
- * is precisely why key material does not stop a linear approximation.
+ * change the magnitude of an individual trail's correlation, only its sign.
+ * The whole approximation sums many such trails: key-dependent signs can
+ * make their contributions reinforce or cancel, even to zero.
  */
 export function roundCorrelation(lat: LatTable, alpha: number, beta: number): number {
   return sboxLayerCorrelation(lat, alpha, permuteMaskInverse(beta));
