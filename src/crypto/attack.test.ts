@@ -48,6 +48,12 @@ describe('known-plaintext collection', () => {
     expect(a).not.toEqual(c);
   });
 
+  it('bounds repeated traffic before allocating its pair array', () => {
+    const key = generateKey(0x3a94);
+    expect(() => collectKnownPairs(key, heys, 3, -1, mulberry32(1))).toThrow('integer from 0 to 4096');
+    expect(() => collectKnownPairs(key, heys, 3, 4097, mulberry32(1))).toThrow('integer from 0 to 4096');
+  });
+
   it('fullCodebook covers every plaintext exactly once', () => {
     const pairs = fullCodebook(generateKey(0xbeef), heys, 3);
     expect(new Set(pairs.map((p) => p.plaintext)).size).toBe(256);
@@ -336,6 +342,13 @@ describe('incremental counting', () => {
     expect(() => startAttack({ ...base, endMask: 0b1100_0001, pairs: [] })).toThrow(RangeError);
     expect(() => startAttack({ ...base, endMask: 0, pairs: [] })).toThrow(RangeError);
   });
+
+  it('rejects invalid incremental batch sizes', () => {
+    const counter = startAttack({ ...base, pairs: [] });
+    for (const count of [-1, 0.5, Number.POSITIVE_INFINITY]) {
+      expect(() => counter.advance(count)).toThrow('non-negative safe integer');
+    }
+  });
 });
 
 describe('scoring', () => {
@@ -483,5 +496,31 @@ describe('distinct versus repeated sampling', () => {
     // Distinct 256 pairs are the full codebook, regardless of shuffled order.
     expect(distinct[2].rate).toBeGreaterThanOrEqual(0);
     expect(distinct[2].rate).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('measurement workload boundary', () => {
+  const base = {
+    sbox: heys,
+    cipherRounds: 3,
+    half: 'high' as const,
+    startMask: TRAIL.startMask,
+    endMask: TRAIL.endMask,
+    sampleCounts: [16],
+    keyCount: 1,
+    bias: TRAIL.bias,
+    seed: 3198,
+  };
+
+  it('rejects measurement requests outside the bounded demo workload', () => {
+    expect(() => measureSuccessRate({ ...base, cipherRounds: 5 })).toThrow('integer from 2 to 4');
+    expect(() => measureSuccessRate({ ...base, sampleCounts: [] })).toThrow('between 1 and 5');
+    expect(() => measureSuccessRate({ ...base, sampleCounts: [4097] })).toThrow('integers from 1 to 4096');
+    expect(() => measureSuccessRate({ ...base, keyCount: 61 })).toThrow('integer from 1 to 60');
+    expect(() => measureSuccessRate({ ...base, seed: -1 })).toThrow('32-bit unsigned integer');
+    expect(() => measureSuccessRate({ ...base, bias: Number.NaN })).toThrow('finite and between');
+    expect(() => measureSuccessRate({ ...base, sampling: 'distinct', sampleCounts: [257] })).toThrow(
+      'integers from 1 to 256',
+    );
   });
 });

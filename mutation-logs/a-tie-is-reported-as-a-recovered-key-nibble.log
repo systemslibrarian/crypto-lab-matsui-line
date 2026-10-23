@@ -1,0 +1,33 @@
+
+ RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 3ms
+   ❯ the attack fails honestly where it should (5)
+     × reports a tie rather than claiming a break 3ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 skipped (34)
+   Start at  17:39:56
+   Duration  100ms (import 50%, transform 38%, tests 9%, worker 3%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/attack.test.ts > the attack fails honestly where it should > reports a tie rather than claiming a break
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/crypto/attack.test.ts:294:30
+    292|       pairs: [],
+    293|     });
+    294|     expect(result.recovered).toBe(false);
+       |                              ^
+    295|     expect(result.tiedAtTop).toBe(true);
+    296|     expect(result.winners).toHaveLength(16);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

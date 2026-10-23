@@ -22,6 +22,7 @@ export interface AdvancedObservation {
 const heys = getSbox('heys');
 const innerRounds = 2;
 const cipherRounds = 3;
+const ADVANCED_SAMPLE_COUNTS: readonly number[] = [16, 64, 256];
 
 /**
  * A zero with no nonzero trail holds for every round key; a sampled zero can
@@ -29,6 +30,12 @@ const cipherRounds = 3;
  * four-cell distribution rather than silently treating their counts as independent.
  */
 export function observeAdvanced(masterKey: number, samples: 16 | 64 | 256): AdvancedObservation {
+  if (!Number.isSafeInteger(masterKey) || masterKey < 0 || masterKey > 0xffff) {
+    throw new RangeError('advanced observation key must be a 16-bit unsigned integer');
+  }
+  if (!ADVANCED_SAMPLE_COUNTS.includes(samples)) {
+    throw new RangeError('advanced observation samples must be 16, 64, or 256');
+  }
   const ranked = rankApproximations(heys, innerRounds, { endHalf: 'high' });
   const first = ranked[0];
   const second = ranked.find(
@@ -54,7 +61,7 @@ export function observeAdvanced(masterKey: number, samples: 16 | 64 | 256): Adva
   }
   return {
     samples,
-    key: masterKey & 0xffff,
+    key: masterKey,
     relations: [
       { startMask: first.startMask, endMask: first.endMask, matches: matches[0] },
       { startMask: second.startMask, endMask: second.endMask, matches: matches[1] },

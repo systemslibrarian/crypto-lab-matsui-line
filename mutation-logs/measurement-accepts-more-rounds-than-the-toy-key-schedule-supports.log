@@ -1,0 +1,30 @@
+
+ RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 4ms
+   ❯ measurement workload boundary (1)
+     × rejects measurement requests outside the bounded demo workload 4ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 skipped (34)
+   Start at  17:39:52
+   Duration  100ms (import 48%, transform 37%, tests 11%, worker 3%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/attack.test.ts > measurement workload boundary > rejects measurement requests outside the bounded demo workload
+AssertionError: expected [Function] to throw error including 'integer from 2 to 4' but got 'rounds must be an integer in 2..4, go…'
+
+Expected: "integer from 2 to 4"
+Received: "rounds must be an integer in 2..4, got 5"
+
+ ❯ src/crypto/attack.test.ts:516:68
+    514|
+    515|   it('rejects measurement requests outside the bounded demo workload',…
+    516|     expect(() => measureSuccessRate({ ...base, cipherRounds: 5 })).toT…
+       |                                                                    ^
+    517|     expect(() => measureSuccessRate({ ...base, sampleCounts: [] })).to…
+    518|     expect(() => measureSuccessRate({ ...base, sampleCounts: [4097] })…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

@@ -28,4 +28,10 @@ describe('two-mask and zero-correlation extension', () => {
     const shortCounts = [0x0000, 0x1234, 0xabcd].map((key) => observeAdvanced(key, 16).structuralZero.matches);
     expect(shortCounts.some((count) => count !== 8)).toBe(true);
   });
+
+  it('rejects keys and sample counts outside the advanced controls', () => {
+    expect(() => observeAdvanced(-1, 16)).toThrow('16-bit unsigned integer');
+    expect(() => observeAdvanced(0x1_0000, 16)).toThrow('16-bit unsigned integer');
+    expect(() => observeAdvanced(0x1234, 4096 as 16)).toThrow('samples must be 16, 64, or 256');
+  });
 });
