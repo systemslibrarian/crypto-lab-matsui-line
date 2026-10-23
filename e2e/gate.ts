@@ -242,12 +242,13 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   await assertSingleBanner(page);
 
   // `main.ts` resolves every element through a `$()` that THROWS on a miss and
-  // then renders seven panels, so a navigation that resolves proves nothing.
+  // then renders nine exhibit sections plus research context. A navigation
+  // that resolves by itself proves nothing about successful boot.
   await expect(page.locator('main#app')).toBeVisible();
-  await expect(page.locator('#app section')).toHaveCount(9);
+  await expect(page.locator('#app section')).toHaveCount(10);
   await expect(page.locator('#reduced-chacha')).toBeVisible();
   await expect(page.locator('#chacha-research-heading')).toHaveText('Research context: reduced-round ChaCha');
-  await expect(page.locator('.wayfinder a')).toHaveCount(4);
+  await expect(page.locator('.wayfinder a')).toHaveCount(5);
 
   // ── The shipped experiment ───────────────────────────────────────────────
   // Every one of these is a radio the segmented controls build at runtime; the
