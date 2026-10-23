@@ -60,7 +60,9 @@ export const SBOXES: Readonly<Record<SboxName, Sbox>> = {
 };
 
 export function getSbox(name: SboxName): Sbox {
-  return SBOXES[name];
+  const sbox = SBOXES[name];
+  if (!sbox) throw new RangeError(`unknown S-box: ${String(name)}`);
+  return sbox;
 }
 
 /** Apply the S-box to both nibbles of a byte. */

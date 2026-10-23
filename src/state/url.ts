@@ -56,7 +56,7 @@ export function parseState(search: string, defaults: ExperimentState): Experimen
   if (traffic === 'codebook') state.traffic = 'codebook';
   else if (traffic !== null) {
     const n = Number(traffic);
-    if (Number.isFinite(n) && n >= 1 && n <= 1 << 20) state.traffic = Math.trunc(n);
+    if (TRAFFIC_CHOICES.includes(n as Traffic)) state.traffic = n;
   }
 
   const approx = params.get('approx');
