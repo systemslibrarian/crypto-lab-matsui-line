@@ -124,9 +124,9 @@ export function buildRoundMatrix(lat: LatTable): Float64Array {
 
 /**
  * Best |correlation| of an r-round trail for EVERY (start, end) mask pair, by
- * repeated max-product composition of the round matrix. This is Matsui's
- * branch-and-bound search done exhaustively — the mask space is only 8 bits
- * wide, so the whole ranking is affordable and nothing has to be sampled.
+ * repeated max-product dynamic programming over the round matrix. The mask
+ * space is only 8 bits wide, so the whole ranking is affordable; there is no
+ * depth-first branch-and-bound pruning here.
  */
 function bestProductMatrix(m: Float64Array, rounds: number): Float64Array {
   let current = new Float64Array(256 * 256);

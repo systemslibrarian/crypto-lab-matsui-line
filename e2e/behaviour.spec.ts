@@ -13,6 +13,22 @@ const WORKING = '?sbox=heys&rounds=3&half=high&n=codebook&approx=auto&k=14996';
 /** k=0 at four rounds: the correct nibble ranks third, and must not be claimed. */
 const FAILING = '?sbox=heys&rounds=4&half=high&n=codebook&approx=auto&k=0';
 
+test('the advanced panel counts joint outcomes and distinguishes a structural zero from sample noise', async ({ page }) => {
+  await page.goto(`.${WORKING}`);
+  const panel = page.locator('#advanced');
+  await expect(panel.locator('.advanced-table').first().locator('tbody tr')).toHaveCount(3);
+  await expect(panel.locator('.advanced-table').last().locator('tbody tr')).toHaveCount(4);
+  await expect(panel.locator('.advanced-table').first().locator('tbody tr').last()).toContainText('128/256');
+  await expect(panel).toContainText('full population, not a sample');
+
+  await panel.locator('#advanced-samples').selectOption('16');
+  await panel.locator('#advanced-key').selectOption('4660');
+  await expect(panel).toContainText('finite sample may look biased');
+  const total = await panel.locator('.advanced-table').last().locator('tbody td:last-child').allTextContents();
+  expect(total.map(Number).reduce((sum, count) => sum + count, 0)).toBe(16);
+  await expect(panel).toContainText('does not implement a full multidimensional key-recovery attack');
+});
+
 test('sampling comparison shows unique coverage and uncertainty while retaining the original curve', async ({ page }) => {
   await page.goto(`.${WORKING}&seed=3198`);
   await page.locator('#measure-compare').click();

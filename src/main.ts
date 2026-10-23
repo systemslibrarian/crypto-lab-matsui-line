@@ -47,6 +47,7 @@ import {
   type MechanismStage,
 } from './ui/cockpit.js';
 import { renderCalculator, renderCurve, renderSamplingComparison } from './ui/samples.js';
+import { mountAdvanced } from './ui/advanced.js';
 import { asFraction, esc, hex, magnitude, maskTerms, maskTermsPlain, percent } from './ui/format.js';
 import type { MeasureMessage, MeasureRequest } from './workers/measure.worker.js';
 
@@ -840,7 +841,7 @@ $('measure-cancel').addEventListener('click', () => {
 
 /* ── Wayfinder ─────────────────────────────────────────────────────── */
 
-const wayfinderTargets = ['attack', 'mechanism', 'samples', 'honesty'];
+const wayfinderTargets = ['attack', 'mechanism', 'advanced', 'samples', 'honesty'];
 if ('IntersectionObserver' in window) {
   const links = new Map(
     wayfinderTargets.map((id) => [id, document.querySelector<HTMLAnchorElement>(`.wayfinder a[data-way="${id}"]`)]),
@@ -863,6 +864,7 @@ if ('IntersectionObserver' in window) {
 
 /* ── Boot ──────────────────────────────────────────────────────────── */
 
+mountAdvanced($('advanced'));
 render();
 
 console.info(

@@ -182,8 +182,9 @@
       <nav class="wayfinder" aria-label="Sections of this demo">
         <a href="#attack" data-way="attack"><span class="way-num">1</span> Break it</a>
         <a href="#mechanism" data-way="mechanism"><span class="way-num">2</span> Explain it</a>
-        <a href="#samples" data-way="samples"><span class="way-num">3</span> Stress it</a>
-        <a href="#honesty" data-way="honesty"><span class="way-num">4</span> Limits</a>
+        <a href="#advanced" data-way="advanced"><span class="way-num">3</span> More masks</a>
+        <a href="#samples" data-way="samples"><span class="way-num">4</span> Stress it</a>
+        <a href="#honesty" data-way="honesty"><span class="way-num">5</span> Limits</a>
       </nav>
 
       <!-- ══ 1. THE COCKPIT — the whole point of the page ══════════════ -->
@@ -440,10 +441,29 @@
         </details>
       </section>
 
-      <!-- ══ 6. HOW MUCH TRAFFIC ══════════════════════════════════════ -->
+      <!-- ══ 6. MULTIPLE AND ZERO-CORRELATION RELATIONS ═══════════════ -->
+      <section class="panel" aria-labelledby="advanced-h" id="advanced">
+        <div class="panel-head">
+          <h2 id="advanced-h"><span class="step-num">6</span> Look at more than one relation</h2>
+          <p class="panel-sub">The attack above follows one mask pair. Here two relations are counted on the
+            <em>same</em> plaintexts, including how often they hold together. A third pair has no nonzero trail
+            through two rounds, so its true correlation is zero for every key. This fixed Heys S-box example
+            is separate from the attack settings above.</p>
+        </div>
+        <div class="advanced-controls">
+          <label for="advanced-key">Toy master key</label>
+          <select id="advanced-key"><option value="0">0x0000</option><option value="4660">0x1234</option><option value="43981">0xABCD</option></select>
+          <label for="advanced-samples">Distinct plaintexts</label>
+          <select id="advanced-samples"><option value="16">16</option><option value="64">64</option><option value="256" selected>256 (complete codebook)</option></select>
+        </div>
+        <div id="advanced-results" aria-live="polite"></div>
+        <p class="footnote"><strong>Source and scope.</strong> Beyne and Rijmen, <a href="https://www.cambridge.org/core/books/linear-cryptanalysis/multiple-linear-cryptanalysis/0E7438A0DE3F39BF647B0F2708756D40">Linear Cryptanalysis (2025), chapter 6</a>, study multiple relations, while <a href="https://www.cambridge.org/core/books/abs/linear-cryptanalysis/zerocorrelation-approximations/2720458FF754C2EBDF691CDFC0FAE59F">chapter 8</a> studies zero-correlation approximations. This panel counts two masks and exposes a toy structural zero; it does not implement a full multidimensional key-recovery attack or assess a production cipher.</p>
+      </section>
+
+      <!-- ══ 7. HOW MUCH TRAFFIC ══════════════════════════════════════ -->
       <section class="panel" aria-labelledby="samples-h" id="samples">
         <div class="panel-head">
-          <h2 id="samples-h"><span class="step-num">6</span> How much traffic do you need?</h2>
+          <h2 id="samples-h"><span class="step-num">7</span> How much traffic do you need?</h2>
           <p class="panel-sub">
             Matsui's rule: the number of known plaintexts scales as the inverse square of the bias. Halve the bias — one
             more round — and you need four times the data. But the formula describes a single counter, and the attack
@@ -471,10 +491,10 @@
         </div>
       </section>
 
-      <!-- ══ 7. COMPARISON ════════════════════════════════════════════ -->
+      <!-- ══ 8. COMPARISON ════════════════════════════════════════════ -->
       <section class="panel" aria-labelledby="compare-h" id="compare">
         <div class="panel-head">
-          <h2 id="compare-h"><span class="step-num">7</span> The pair-mate attack</h2>
+          <h2 id="compare-h"><span class="step-num">8</span> The pair-mate attack</h2>
           <p class="panel-sub">
             Differential and linear cryptanalysis arrived three years apart and are usually taught together. They attack
             the same cipher from opposite directions.
@@ -543,9 +563,9 @@
         </div>
       </section>
 
-      <!-- ══ 8. LIMITS ════════════════════════════════════════════════ -->
+      <!-- ══ 9. LIMITS ════════════════════════════════════════════════ -->
       <section class="panel honesty" aria-labelledby="honesty-h" id="honesty">
-        <h2 id="honesty-h"><span class="step-num">8</span> What this is, and what it does not prove</h2>
+        <h2 id="honesty-h"><span class="step-num">9</span> What this is, and what it does not prove</h2>
         <div class="honesty-grid">
           <div>
             <h3>Real</h3>
@@ -574,8 +594,8 @@
                 recovery, and the demo does not claim one.
               </li>
               <li>
-                No multidimensional or zero-correlation linear cryptanalysis, and no attack on real DES — all three are
-                far past what a browser tab should attempt.
+                The new two-mask and structural-zero panel is a bounded toy observation, not a full
+                multidimensional or zero-correlation key-recovery attack, and nothing here attacks real DES.
               </li>
             </ul>
           </div>

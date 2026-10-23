@@ -1628,6 +1628,34 @@ details > dl {
 }
 
 /* ── Calculator & measurement ─────────────────────────────────────── */
+.advanced-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.8rem;
+  margin: 0 0 1rem;
+}
+
+.advanced-controls label { font-weight: 600; }
+
+.advanced-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 25rem), 1fr));
+  gap: 1rem;
+}
+
+.advanced-table {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--panel-2);
+}
+
+.advanced-table table { width: 100%; min-width: 25rem; border-collapse: collapse; }
+.advanced-table caption { text-align: left; padding: 0.7rem 0.8rem; font-weight: 700; }
+.advanced-table th, .advanced-table td { padding: 0.55rem 0.7rem; border-top: 1px solid var(--border); text-align: left; }
+.advanced-table thead th { color: var(--accent-text); font-size: 0.76rem; }
+
 .calc {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));

@@ -748,6 +748,14 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await expectHiddenActuallyHides(page);
   await scanAt('first paint: sixteen empty counters, five disclosures shut');
 
+  // The new two-mask panel has a second sampled state, including a scrollable
+  // table, and must pass the same accessibility and reflow checks as the rest.
+  await page.locator('#advanced-samples').selectOption('16');
+  await page.locator('#advanced-key').selectOption('4660');
+  await scanAt('two-mask sample with a finite-sample structural-zero count');
+  await page.locator('#advanced-samples').selectOption('256');
+  await page.locator('#advanced-key').selectOption('0');
+
   await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur?.());
   await page.keyboard.press('Tab');
   await expect(page.locator('a.cl-skip-link')).toBeFocused();
