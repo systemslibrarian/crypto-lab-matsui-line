@@ -1,0 +1,33 @@
+
+ RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 4ms
+   ❯ incremental counting (5)
+     × rejects invalid incremental batch sizes 3ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 skipped (34)
+   Start at  17:39:49
+   Duration  101ms (import 50%, transform 37%, tests 10%, worker 3%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/attack.test.ts > incremental counting > rejects invalid incremental batch sizes
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/crypto/attack.test.ts:349:44
+    347|     const counter = startAttack({ ...base, pairs: [] });
+    348|     for (const count of [-1, 0.5, Number.POSITIVE_INFINITY]) {
+    349|       expect(() => counter.advance(count)).toThrow('non-negative safe …
+       |                                            ^
+    350|     }
+    351|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

@@ -1,0 +1,33 @@
+
+ RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+
+ ❯ src/state/url.test.ts (2 tests | 1 failed | 1 skipped) 3ms
+   ❯ experiment URL state (2)
+     × rejects traffic values outside the bounded controls 2ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 skipped (2)
+   Start at  17:39:45
+   Duration  79ms (transform 53%, import 21%, tests 18%, worker 8%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/state/url.test.ts > experiment URL state > rejects traffic values outside the bounded controls
+AssertionError: expected +0 to be 256 // Object.is equality
+
+- Expected
++ Received
+
+- 256
++ 0
+
+ ❯ src/state/url.test.ts:26:59
+     24|   it('rejects traffic values outside the bounded controls', () => {
+     25|     for (const value of ['0', '17', '64.5', '4097', '1048576', 'Infini…
+     26|       expect(parseState(`?n=${value}`, defaults).traffic).toBe(default…
+       |                                                           ^
+     27|     }
+     28|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
