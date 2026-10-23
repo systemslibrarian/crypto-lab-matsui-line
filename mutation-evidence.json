@@ -1,0 +1,102 @@
+[
+  {
+    "name": "shared URLs accept an unbounded traffic count",
+    "sourceDiff": "diff --git a/src/state/url.ts b/src/state/url.ts\nindex d7711cb..84ce9c5 100644\n--- a/src/state/url.ts\n+++ b/src/state/url.ts\n@@ -56,7 +56,7 @@ export function parseState(search: string, defaults: ExperimentState): Experimen\n   if (traffic === 'codebook') state.traffic = 'codebook';\n   else if (traffic !== null) {\n     const n = Number(traffic);\n-    if (TRAFFIC_CHOICES.includes(n as Traffic)) state.traffic = n;\n+    if (Number.isFinite(n)) state.traffic = n;\n   }\n \n   const approx = params.get('approx');\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "bab9f10f7d43eb640a75298e385bd2f809f4fdffaa85057d7e105ae6ffd1a011",
+    "namedTest": "rejects traffic values outside the bounded controls",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "the advanced exhibit accepts an unsupported sample count",
+    "sourceDiff": "diff --git a/src/crypto/advanced.ts b/src/crypto/advanced.ts\nindex 4762b5e..f7a89ce 100644\n--- a/src/crypto/advanced.ts\n+++ b/src/crypto/advanced.ts\n@@ -33,7 +33,7 @@ export function observeAdvanced(masterKey: number, samples: 16 | 64 | 256): Adva\n   if (!Number.isSafeInteger(masterKey) || masterKey < 0 || masterKey > 0xffff) {\n     throw new RangeError('advanced observation key must be a 16-bit unsigned integer');\n   }\n-  if (!ADVANCED_SAMPLE_COUNTS.includes(samples)) {\n+  if (false && !ADVANCED_SAMPLE_COUNTS.includes(samples)) {\n     throw new RangeError('advanced observation samples must be 16, 64, or 256');\n   }\n   const ranked = rankApproximations(heys, innerRounds, { endHalf: 'high' });\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "97d441c5402f055d6fcf0f56224906473f186569911bc3cc5b3f50daebdb2672",
+    "namedTest": "rejects keys and sample counts outside the advanced controls",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "known-plaintext collection allocates beyond the demo traffic ceiling",
+    "sourceDiff": "diff --git a/src/crypto/attack.ts b/src/crypto/attack.ts\nindex 0f27570..b3f6749 100644\n--- a/src/crypto/attack.ts\n+++ b/src/crypto/attack.ts\n@@ -50,7 +50,7 @@ export function collectKnownPairs(\n   count: number,\n   rng: Rng,\n ): KnownPair[] {\n-  if (!Number.isSafeInteger(count) || count < 0 || count > 4096) {\n+  if (!Number.isSafeInteger(count) || count < 0 || false) {\n     throw new RangeError('repeated sample count must be an integer from 0 to 4096');\n   }\n   const pairs: KnownPair[] = new Array(count);\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "082e544d17e1d3e5fce953da1c0af002d73d802851958cc4aed8c57eb70910e5",
+    "namedTest": "bounds repeated traffic before allocating its pair array",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "incremental counting accepts an invalid batch size",
+    "sourceDiff": "diff --git a/src/crypto/attack.ts b/src/crypto/attack.ts\nindex 0f27570..4824a95 100644\n--- a/src/crypto/attack.ts\n+++ b/src/crypto/attack.ts\n@@ -184,7 +184,7 @@ export function startAttack(options: AttackOptions): AttackCounter {\n   }\n \n   const advance = (count: number): number => {\n-    if (!Number.isSafeInteger(count) || count < 0) {\n+    if (!Number.isSafeInteger(count) || false) {\n       throw new RangeError('advance count must be a non-negative safe integer');\n     }\n     const limit = Math.min(processed + Math.max(0, count), pairs.length);\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "116d72f8538f886888a9826c78ee6b1cf739b5f81b73690350a88269dacef5b3",
+    "namedTest": "rejects invalid incremental batch sizes",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "an unknown runtime S-box name passes through as undefined",
+    "sourceDiff": "diff --git a/src/crypto/sbox.ts b/src/crypto/sbox.ts\nindex d1b9eb1..e757901 100644\n--- a/src/crypto/sbox.ts\n+++ b/src/crypto/sbox.ts\n@@ -61,7 +61,7 @@ export const SBOXES: Readonly<Record<SboxName, Sbox>> = {\n \n export function getSbox(name: SboxName): Sbox {\n   const sbox = SBOXES[name];\n-  if (!sbox) throw new RangeError(`unknown S-box: ${String(name)}`);\n+  if (false && !sbox) throw new RangeError(`unknown S-box: ${String(name)}`);\n   return sbox;\n }\n \n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "0927a5980edc3b46d441f835a1be34c9e849b3260650daf68696b9c0eceaa755",
+    "namedTest": "rejects an unknown runtime S-box name",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "measurement accepts more rounds than the toy key schedule supports",
+    "sourceDiff": "diff --git a/src/crypto/attack.ts b/src/crypto/attack.ts\nindex 0f27570..70aaeb7 100644\n--- a/src/crypto/attack.ts\n+++ b/src/crypto/attack.ts\n@@ -515,7 +515,7 @@ export interface MeasureOptions {\n export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {\n   const { sbox, cipherRounds, half, startMask, endMask, sampleCounts, keyCount, bias, seed, onProgress, sampling = 'repeated' } =\n     options;\n-  if (!Number.isInteger(cipherRounds) || cipherRounds < 2 || cipherRounds > 4) {\n+  if (!Number.isInteger(cipherRounds) || cipherRounds < 2 || false) {\n     throw new RangeError('measurement rounds must be an integer from 2 to 4');\n   }\n   if (half !== 'low' && half !== 'high') throw new RangeError('measurement half must be low or high');\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "c6fade8c40e17b107cadee5efe79885e6fec66eec2129d106e36f6634ae690ea",
+    "namedTest": "rejects measurement requests outside the bounded demo workload",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "measurement accepts a sample count beyond its traffic ceiling",
+    "sourceDiff": "diff --git a/src/crypto/attack.ts b/src/crypto/attack.ts\nindex 0f27570..8910059 100644\n--- a/src/crypto/attack.ts\n+++ b/src/crypto/attack.ts\n@@ -531,7 +531,7 @@ export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {\n     throw new RangeError('measurement needs between 1 and 5 sample counts');\n   }\n   const sampleLimit = sampling === 'distinct' ? 256 : 4096;\n-  if (sampleCounts.some((samples) => !Number.isSafeInteger(samples) || samples < 1 || samples > sampleLimit)) {\n+  if (sampleCounts.some((samples) => !Number.isSafeInteger(samples) || samples < 1 || false)) {\n     throw new RangeError(`measurement sample counts must be integers from 1 to ${sampleLimit}`);\n   }\n   if (!Number.isSafeInteger(keyCount) || keyCount < 1 || keyCount > 60) {\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "7cab0dda5c8e3c7abdb78ef55211bfe26726b60d090c4ce84d6d9242105085e2",
+    "namedTest": "rejects measurement requests outside the bounded demo workload",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "measurement accepts more toy keys than the published workload",
+    "sourceDiff": "diff --git a/src/crypto/attack.ts b/src/crypto/attack.ts\nindex 0f27570..a5c6b28 100644\n--- a/src/crypto/attack.ts\n+++ b/src/crypto/attack.ts\n@@ -534,7 +534,7 @@ export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {\n   if (sampleCounts.some((samples) => !Number.isSafeInteger(samples) || samples < 1 || samples > sampleLimit)) {\n     throw new RangeError(`measurement sample counts must be integers from 1 to ${sampleLimit}`);\n   }\n-  if (!Number.isSafeInteger(keyCount) || keyCount < 1 || keyCount > 60) {\n+  if (!Number.isSafeInteger(keyCount) || keyCount < 1 || false) {\n     throw new RangeError('measurement key count must be an integer from 1 to 60');\n   }\n   if (!Number.isFinite(bias) || Math.abs(bias) > 0.5) {\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "3a3f226733fb2bd46e855643ecfeaf639d8e63277a587042effaa6f05337150c",
+    "namedTest": "rejects measurement requests outside the bounded demo workload",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "a tie is reported as a recovered key nibble",
+    "sourceDiff": "diff --git a/src/crypto/attack.ts b/src/crypto/attack.ts\nindex 0f27570..922ce89 100644\n--- a/src/crypto/attack.ts\n+++ b/src/crypto/attack.ts\n@@ -247,7 +247,7 @@ function score(\n     winners,\n     trueNibble,\n     correctRank,\n-    recovered: correctAtTop && winners.length === 1,\n+    recovered: correctAtTop,\n     tiedAtTop: correctAtTop && winners.length > 1,\n     samples: total,\n     bitsRecovered: correctAtTop ? Math.log2(16 / winners.length) : 0,\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "2494dc8a19cb89c887c915df8670d8daba3c7c53afebac896d3856cf4fcb2c42",
+    "namedTest": "reports a tie rather than claiming a break",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  },
+  {
+    "name": "the second relation is placed in the wrong joint-distribution cells",
+    "sourceDiff": "diff --git a/src/crypto/advanced.ts b/src/crypto/advanced.ts\nindex 4762b5e..2b6e25e 100644\n--- a/src/crypto/advanced.ts\n+++ b/src/crypto/advanced.ts\n@@ -57,7 +57,7 @@ export function observeAdvanced(masterKey: number, samples: 16 | 64 | 256): Adva\n       ({ startMask, endMask }) => dot(startMask, plaintext) === dot(endMask, lastInput),\n     );\n     for (let j = 0; j < matches.length; j++) if (holds[j]) matches[j]++;\n-    joint[(holds[0] ? 2 : 0) + (holds[1] ? 1 : 0)]++;\n+    joint[(holds[0] ? 2 : 0) + (holds[1] ? 0 : 1)]++;\n   }\n   return {\n     samples,\n",
+    "baseline": "3e36b6f926c6f97c89df635fc333f422ad22d0ebade3fac6f85dcb6804969072",
+    "mutant": "9173ecfd73c91cbdaeabe8569da742b20f9022df1ea39b31eda41b6d6d0ddccb",
+    "namedTest": "keeps the complete joint distribution rather than assuming independence",
+    "assertionFailure": true,
+    "retries": 0,
+    "restoredGreen": true
+  }
+]

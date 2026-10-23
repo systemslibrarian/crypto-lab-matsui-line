@@ -1,0 +1,33 @@
+
+ RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 4ms
+   ❯ known-plaintext collection (5)
+     × bounds repeated traffic before allocating its pair array 4ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 skipped (34)
+   Start at  17:39:47
+   Duration  120ms (import 46%, transform 40%, tests 10%, worker 3%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/attack.test.ts > known-plaintext collection > bounds repeated traffic before allocating its pair array
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/crypto/attack.test.ts:54:72
+     52|     const key = generateKey(0x3a94);
+     53|     expect(() => collectKnownPairs(key, heys, 3, -1, mulberry32(1))).t…
+     54|     expect(() => collectKnownPairs(key, heys, 3, 4097, mulberry32(1)))…
+       |                                                                        ^
+     55|   });
+     56|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

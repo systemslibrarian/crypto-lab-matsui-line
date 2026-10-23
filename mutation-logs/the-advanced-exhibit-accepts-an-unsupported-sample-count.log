@@ -1,0 +1,33 @@
+
+ RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+
+ ❯ src/crypto/advanced.test.ts (3 tests | 1 failed | 2 skipped) 14ms
+   ❯ two-mask and zero-correlation extension (3)
+     × rejects keys and sample counts outside the advanced controls 14ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 skipped (3)
+   Start at  17:39:46
+   Duration  93ms (tests 47%, transform 33%, import 16%, worker 4%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/advanced.test.ts > two-mask and zero-correlation extension > rejects keys and sample counts outside the advanced controls
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/crypto/advanced.test.ts:35:55
+     33|     expect(() => observeAdvanced(-1, 16)).toThrow('16-bit unsigned int…
+     34|     expect(() => observeAdvanced(0x1_0000, 16)).toThrow('16-bit unsign…
+     35|     expect(() => observeAdvanced(0x1234, 4096 as 16)).toThrow('samples…
+       |                                                       ^
+     36|   });
+     37| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

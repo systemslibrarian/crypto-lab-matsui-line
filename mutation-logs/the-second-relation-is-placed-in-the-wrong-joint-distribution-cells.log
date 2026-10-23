@@ -1,0 +1,33 @@
+
+ RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+
+ ❯ src/crypto/advanced.test.ts (3 tests | 1 failed | 2 skipped) 13ms
+   ❯ two-mask and zero-correlation extension (3)
+     × keeps the complete joint distribution rather than assuming independence 12ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 2 skipped (3)
+   Start at  17:39:57
+   Duration  91ms (tests 45%, transform 34%, import 17%, worker 4%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/advanced.test.ts > two-mask and zero-correlation extension > keeps the complete joint distribution rather than assuming independence
+AssertionError: expected 11 to be 5 // Object.is equality
+
+- Expected
++ Received
+
+- 5
++ 11
+
+ ❯ src/crypto/advanced.test.ts:13:43
+     11|       expect(result.jointCounts.reduce((sum, n) => sum + n, 0)).toBe(c…
+     12|       expect(result.relations[0].matches).toBe(result.jointCounts[2] +…
+     13|       expect(result.relations[1].matches).toBe(result.jointCounts[1] +…
+       |                                           ^
+     14|       expect(result.relations[0].startMask).not.toBe(result.relations[…
+     15|       expect(result.relations[0].endMask).not.toBe(result.relations[1]…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

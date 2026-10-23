@@ -1,0 +1,33 @@
+
+ RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+
+ ❯ src/crypto/sbox.test.ts (7 tests | 1 failed | 6 skipped) 3ms
+   ❯ S-box tables (4)
+     × rejects an unknown runtime S-box name 3ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 6 skipped (7)
+   Start at  17:39:50
+   Duration  93ms (transform 50%, import 25%, tests 17%, worker 7%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/sbox.test.ts > S-box tables > rejects an unknown runtime S-box name
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/crypto/sbox.test.ts:28:48
+     26|
+     27|   it('rejects an unknown runtime S-box name', () => {
+     28|     expect(() => getSbox('unknown' as 'heys')).toThrow('unknown S-box'…
+       |                                                ^
+     29|   });
+     30|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
