@@ -49,6 +49,7 @@ test('CI tests supported Node majors from the exact lockfile', () => {
   const browser = read('browser-gate.yml');
   assert.match(ci, /node:\s*\[22, 24, 26\]/);
   for (const source of [ci, browser]) {
+    assert.match(source, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
     assert.match(source, /npm ci/);
     assert.match(source, /npm audit --audit-level=high/);
     assert.doesNotMatch(source, /npm install(?:\s|$)/);
