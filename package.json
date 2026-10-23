@@ -10,8 +10,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:a11y": "playwright test",
+    "test:e2e": "playwright test",
+    "test:visual": "VISUAL=1 playwright test e2e/visual.spec.ts",
+    "test:workflow": "node --test scripts/workflow-controls.test.mjs",
+    "test:publisher": "node --test scripts/publisher-controls.test.mjs",
     "test:mutations": "node scripts/check-mutations.mjs",
-    "test:visual": "VISUAL=1 playwright test e2e/visual.spec.ts"
+    "test:mutations:claims": "node scripts/claim-mutations.mjs",
+    "deploy": "gh workflow run deploy.yml --repo systemslibrarian/crypto-lab-matsui-line --ref main"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",

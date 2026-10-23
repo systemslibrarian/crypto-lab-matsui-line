@@ -50,6 +50,9 @@ export function collectKnownPairs(
   count: number,
   rng: Rng,
 ): KnownPair[] {
+  if (!Number.isSafeInteger(count) || count < 0 || count > 4096) {
+    throw new RangeError('repeated sample count must be an integer from 0 to 4096');
+  }
   const pairs: KnownPair[] = new Array(count);
   for (let i = 0; i < count; i++) {
     const plaintext = rng.nextByte();
@@ -181,6 +184,9 @@ export function startAttack(options: AttackOptions): AttackCounter {
   }
 
   const advance = (count: number): number => {
+    if (!Number.isSafeInteger(count) || count < 0) {
+      throw new RangeError('advance count must be a non-negative safe integer');
+    }
     const limit = Math.min(processed + Math.max(0, count), pairs.length);
     let consumed = 0;
     for (; processed < limit; processed++) {
@@ -509,6 +515,40 @@ export interface MeasureOptions {
 export function measureSuccessRate(options: MeasureOptions): SuccessPoint[] {
   const { sbox, cipherRounds, half, startMask, endMask, sampleCounts, keyCount, bias, seed, onProgress, sampling = 'repeated' } =
     options;
+  if (!Number.isInteger(cipherRounds) || cipherRounds < 2 || cipherRounds > 4) {
+    throw new RangeError('measurement rounds must be an integer from 2 to 4');
+  }
+  if (half !== 'low' && half !== 'high') throw new RangeError('measurement half must be low or high');
+  if (!Number.isInteger(startMask) || startMask < 1 || startMask > 0xff) {
+    throw new RangeError('measurement start mask must be an integer from 1 to 255');
+  }
+  if (!Number.isInteger(endMask) || endMask < 1 || endMask > 0xff) {
+    throw new RangeError('measurement end mask must be an integer from 1 to 255');
+  }
+  const strayBits = half === 'low' ? endMask & 0xf0 : endMask & 0x0f;
+  if (strayBits !== 0) throw new RangeError(`measurement end mask reads outside the ${half} nibble`);
+  if (!Array.isArray(sampleCounts) || sampleCounts.length < 1 || sampleCounts.length > 5) {
+    throw new RangeError('measurement needs between 1 and 5 sample counts');
+  }
+  const sampleLimit = sampling === 'distinct' ? 256 : 4096;
+  if (sampleCounts.some((samples) => !Number.isSafeInteger(samples) || samples < 1 || samples > sampleLimit)) {
+    throw new RangeError(`measurement sample counts must be integers from 1 to ${sampleLimit}`);
+  }
+  if (!Number.isSafeInteger(keyCount) || keyCount < 1 || keyCount > 60) {
+    throw new RangeError('measurement key count must be an integer from 1 to 60');
+  }
+  if (!Number.isFinite(bias) || Math.abs(bias) > 0.5) {
+    throw new RangeError('measurement bias must be finite and between -0.5 and 0.5');
+  }
+  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffff_ffff) {
+    throw new RangeError('measurement seed must be a 32-bit unsigned integer');
+  }
+  if (sampling !== 'repeated' && sampling !== 'distinct') {
+    throw new RangeError('measurement sampling must be repeated or distinct');
+  }
+  if (onProgress !== undefined && typeof onProgress !== 'function') {
+    throw new TypeError('measurement progress callback must be a function');
+  }
   const rng = mulberry32(seed);
   const masterKeys: number[] = [];
   for (let i = 0; i < keyCount; i++) masterKeys.push(((rng.nextByte() << 8) | rng.nextByte()) & 0xffff);
