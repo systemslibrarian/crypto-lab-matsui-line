@@ -883,7 +883,8 @@ const dlView: {
   stale: boolean;
   worker: Worker | null;
   measureRevision: number;
-} = { result: null, stale: false, worker: null, measureRevision: 0 };
+  measureStarted: boolean;
+} = { result: null, stale: false, worker: null, measureRevision: 0, measureStarted: false };
 
 function dlDesign(): DlDesign {
   return experiment.dlDesign === 'aligned' ? ALIGNED : CANCELLED;
@@ -892,9 +893,12 @@ function dlDesign(): DlDesign {
 function invalidateDl(): void {
   if (dlView.result !== null) dlView.stale = true;
   dlView.measureRevision += 1;
-  stopDlMeasurement();
-  $('dl-measure-result').replaceChildren();
-  $('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';
+  if (dlView.measureStarted) {
+    stopDlMeasurement();
+    dlView.measureStarted = false;
+    $('dl-measure-result').replaceChildren();
+    $('dl-measure-status').textContent = 'Settings changed — the prior measurement was retired. Measure again.';
+  }
   renderDlPanel();
   syncUrl();
 }
@@ -992,6 +996,7 @@ function stopDlMeasurement(): void {
 
 function startDlMeasurement(): void {
   const revision = ++dlView.measureRevision;
+  dlView.measureStarted = true;
   $<HTMLButtonElement>('dl-measure-run').disabled = true;
   $('dl-measure-cancel').hidden = false;
   $('dl-measure-result').replaceChildren();

@@ -327,8 +327,13 @@ test('changing composition settings retires the previous ranking', async ({ page
 
 test('composition controls update the URL and survive reload', async ({ page }) => {
   await page.goto(`.${DL_WORKING}`);
+  await expect(page.locator('#dl-measure-run')).toHaveText('Measure the real success rate');
+  await expect(page.locator('#dl-measure-status')).toBeEmpty();
   await page.click('label[for="dl-cancelled"]');
   await page.click('label[for="dlb-32"]');
+  await expect(page.locator('#dl-measure-run')).toHaveText('Measure the real success rate');
+  await expect(page.locator('#dl-measure-status')).toBeEmpty();
+  await expect(page.locator('#dl-measure-result')).toBeEmpty();
   await expect.poll(() => new URL(page.url()).searchParams.get('dl')).toBe('cancelled');
   await expect.poll(() => new URL(page.url()).searchParams.get('dlb')).toBe('32');
 
@@ -364,7 +369,7 @@ test('changing the composition retires a completed or in-flight success curve', 
   await page.click('label[for="dl-cancelled"]');
   await expect(page.locator('#dl-measure-cancel')).toBeHidden();
   await expect(page.locator('#dl-measure-result')).toBeEmpty();
-  await expect(page.locator('#dl-measure-status')).toContainText('prior curve was retired');
+  await expect(page.locator('#dl-measure-status')).toContainText('prior measurement was retired');
   await expect(page.locator('#difflin .ranking-wrap')).toHaveAttribute(
     'aria-label',
     'The 16 observable last-round high-nibble hypotheses, ranked by absolute bias',
@@ -379,7 +384,7 @@ test('changing the composition retires a completed or in-flight success curve', 
   await page.click('label[for="dl-cancelled"]');
   await expect(page.locator('#dl-measure-cancel')).toBeHidden();
   await expect(page.locator('#dl-measure-result')).toBeEmpty();
-  await expect(page.locator('#dl-measure-status')).toContainText('prior curve was retired');
+  await expect(page.locator('#dl-measure-status')).toContainText('prior measurement was retired');
 });
 
 test('a share link reproduces the exact composition', async ({ page }) => {
