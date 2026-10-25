@@ -89,7 +89,7 @@ export const CANCELLED: DlDesign = {
 };
 
 export const DL_BUDGETS: readonly number[] = [16, 32, 64, 96, 128];
-export const DL_DEFAULT_BUDGET = 64;
+export const DL_DEFAULT_BUDGET = 96;
 
 export interface DdtTable {
   /** ddt[din][dout] = number of x in 0..15 with S(x)⊕S(x⊕din) = dout. */
@@ -341,7 +341,13 @@ export interface DlMeasureOptions {
   readonly sbox: Sbox;
   readonly design: DlDesign;
   readonly budgets: readonly number[];
-  /** Deterministic: master keys 0, 1, …, keyCount-1. No randomness anywhere. */
+  /**
+   * Deterministic: master keys 0, 129, 258, … (i·129 mod 2¹⁶). No randomness
+   * anywhere. The odd stride matters: success on this cipher is not uniform
+   * over keys — it clusters on key-schedule patterns — so the first 512 keys
+   * measured 100% at 64 pairs while the whole 16-bit space measures 84%. The
+   * stride walks every residue class fairly instead of sampling one pocket.
+   */
   readonly keyCount: number;
   readonly onProgress?: (completed: number, total: number) => void;
 }
@@ -358,8 +364,8 @@ export function measureDlSuccessRate(options: DlMeasureOptions): DlSuccessPoint[
   return budgets.map((budget) => {
     let wins = 0;
     let tiedWins = 0;
-    for (let masterKey = 0; masterKey < keyCount; masterKey++) {
-      const result = runDlAttack({ sbox, key: generateKey(masterKey), design, budget });
+    for (let i = 0; i < keyCount; i++) {
+      const result = runDlAttack({ sbox, key: generateKey((i * 129) & 0xffff), design, budget });
       if (result.verdict !== 'failed') {
         wins += 1;
         if (result.verdict === 'tied') tiedWins += 1;

@@ -991,13 +991,15 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await scanAt('the measured success curve beside the predicted one');
 
   // ── The differential–linear composition, both designs ───────────────────
-  // The shipped configuration on the session key. At 64 pairs the aligned
-  // ranking names the true subkey for 496 of the first 512 keys and ties at
-  // the top for the other 16, so the verdict class is either of the two
-  // honest outcomes — and never anything else.
+  // The shipped configuration on the session key: 96 chosen pairs. Over the
+  // whole 16-bit key space that budget names the true subkey for 99.3% of
+  // keys, ties for 0.2% and loses to the noise for the rest — and which one
+  // this session's key produces is a property of the key, not of the drive.
+  // Like the four-round preset above, the class is asserted as the set of
+  // honest outcomes; the pinned segment at the end proves a specific one.
   await page.click('#dl-run');
-  await expect(page.locator('#dl-status')).toContainText('Counted 64 chosen pairs');
-  await expect(page.locator('#dl-verdict')).toHaveClass(/verdict is-(broken|partial)/);
+  await expect(page.locator('#dl-status')).toContainText('Counted 96 chosen pairs');
+  await expect(page.locator('#dl-verdict')).toHaveClass(/verdict is-(broken|partial|held)/);
   await expect(page.locator('#dl-holdout')).toContainText('fresh pairs');
   await scanAt('the composition run at the shipped configuration');
 

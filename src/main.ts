@@ -101,7 +101,7 @@ const DEFAULTS: ExperimentState = {
   masterKey: randomMasterKey(),
   seed: null,
   dlDesign: 'aligned',
-  dlBudget: 64,
+  dlBudget: 96,
 };
 
 const experiment: ExperimentState = parseState(window.location.search, DEFAULTS);

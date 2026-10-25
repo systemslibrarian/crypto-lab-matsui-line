@@ -295,10 +295,14 @@ test('the measured success rate is a deterministic curve over 512 keys', async (
   await expect(page.locator('#dl-measure-cancel')).toBeVisible();
   await expect(page.locator('#dl-measure-result .dl-curve tbody tr')).toHaveCount(5, { timeout: 120_000 });
   const rows = page.locator('#dl-measure-result .dl-curve tbody tr');
-  // The pinned deterministic curve: 45.3%, 68.8%, 100%, 100%, 100%.
-  await expect(rows.nth(0)).toContainText('45.3%');
-  await expect(rows.nth(1)).toContainText('68.8%');
-  await expect(rows.nth(2)).toContainText('100.0%');
+  // The pinned deterministic curve over the stride-129 key walk:
+  // 21.5%, 55.9%, 83.4%, 99.8%, 100.0%. The whole 16-bit space measures
+  // 24%, 55%, 84%, 99.5% and 100% — the walk is fair, and it shows the
+  // finite-sample truth instead of a flat promise.
+  await expect(rows.nth(0)).toContainText('21.5%');
+  await expect(rows.nth(1)).toContainText('55.9%');
+  await expect(rows.nth(2)).toContainText('83.4%');
+  await expect(rows.nth(3)).toContainText('99.8%');
   await expect(rows.nth(4)).toContainText('100.0%');
   await expect(page.locator('#dl-measure-status')).toContainText('2,560 complete rankings run');
 });

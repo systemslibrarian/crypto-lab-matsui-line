@@ -156,7 +156,7 @@ describe('the composed attack on the real cipher', () => {
   // the 3-round cipher) is 0xa9.
   const pinnedKey = generateKey(14996);
 
-  it('recovers K4 outright at the default budget of 64 pairs', () => {
+  it('recovers K4 outright at a 64-pair budget', () => {
     const result = runDlAttack({ sbox: heys, key: pinnedKey, design: ALIGNED, budget: 64 });
     expect(result.trueSubkey).toBe(0xa9);
     expect(result.winner).toBe(0xa9);
@@ -229,7 +229,7 @@ describe('the composed attack on the real cipher', () => {
 });
 
 describe('the measured success rate across keys', () => {
-  it('pins the deterministic budget curve for the aligned design over 512 keys', () => {
+  it('pins the deterministic budget curve for the aligned design over 512 stride-walked keys', () => {
     const points = measureDlSuccessRate({
       sbox: heys,
       design: ALIGNED,
@@ -237,27 +237,31 @@ describe('the measured success rate across keys', () => {
       keyCount: 512,
     });
     expect(points.map((p) => p.budget)).toEqual([16, 32, 64, 96, 128]);
-    // Reproduced by running the same deterministic measurement twice offline.
-    expect(points.map((p) => p.wins)).toEqual([232, 352, 512, 512, 512]);
-    expect(points.map((p) => p.tiedWins)).toEqual([90, 32, 16, 0, 0]);
+    // Reproduced by running the same deterministic measurement offline, twice.
+    // The keys are 0, 129, 258, … — the odd stride that walks the 16-bit space
+    // fairly. (The first 512 consecutive keys measure 100% at 64 pairs; the
+    // whole space measures 84%. A stride-1 sample would have lied.)
+    expect(points.map((p) => p.wins)).toEqual([110, 286, 427, 511, 512]);
+    expect(points.map((p) => p.tiedWins)).toEqual([17, 36, 17, 0, 0]);
     expect(points.map((p) => p.rate)).toEqual([
-      232 / 512,
-      352 / 512,
-      1,
-      1,
+      110 / 512,
+      286 / 512,
+      427 / 512,
+      511 / 512,
       1,
     ]);
   });
 
-  it('pins the control flatlining at chance for budgets 64 and up', () => {
+  it('pins the control flatlining at chance for budgets 32 and up', () => {
     const points = measureDlSuccessRate({
       sbox: heys,
       design: CANCELLED,
       budgets: DL_BUDGETS,
       keyCount: 512,
     });
-    // 25, 8, 0, 0, 0 — nothing a ranking of 256 candidates can use.
-    expect(points.map((p) => p.wins)).toEqual([25, 8, 0, 0, 0]);
+    // 7 ties at 16 pairs, then nothing at all — chance for 256 candidates.
+    expect(points.map((p) => p.wins)).toEqual([7, 0, 0, 0, 0]);
+    expect(points.map((p) => p.tiedWins)).toEqual([7, 0, 0, 0, 0]);
   });
 
   it('reports progress as it works', () => {
@@ -278,7 +282,7 @@ describe('the cipher the composition runs on', () => {
   it('is the shared 3-round toy SPN, not a special-purpose construction', () => {
     expect(DL_ROUNDS).toBe(3);
     expect(DL_DX).toBe(0x0b);
-    expect(DL_DEFAULT_BUDGET).toBe(64);
+    expect(DL_DEFAULT_BUDGET).toBe(96);
     // The attack encrypts through the production encrypt() path only.
     const key = generateKey(1);
     expect(encrypt(0x00, key, heys, 3)).toBe(runThroughEncrypt(0x00, key));

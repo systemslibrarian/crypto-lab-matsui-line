@@ -333,8 +333,8 @@ export function renderDlCurve(el: HTMLElement, points: readonly DlSuccessPoint[]
       the same deterministic ranking, run over ${points[0]?.trials.toLocaleString() ?? 0} keys
       (${
         design.name === 'aligned'
-          ? 'master keys 0…511, chosen pairs fixed by the budget'
-          : 'the control: the same machinery on the cancelled composition'
+          ? 'master keys 0, 129, 258, … — a fixed odd stride that walks the whole 16-bit key space fairly, chosen pairs fixed by the budget'
+          : 'the control: the same machinery, the same key walk, on the cancelled composition'
       }). No randomness anywhere — the same inputs give the same curve every time.
     </p>
     <div class="dl-scroll" role="region" aria-label="Measured ranking success by budget" tabindex="0">
