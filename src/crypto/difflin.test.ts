@@ -281,6 +281,9 @@ describe('the composed attack on the real cipher', () => {
     // guesses is a distinct statistic (verified across keys: no ties at the
     // top at budgets 96 and 128 in the success measurement below).
     const result = runDlAttack({ sbox: heys, key: pinnedKey, design: ALIGNED, budget: 96 });
+    expect(result.attackPairs).toBe(96);
+    expect(result.holdoutPairs).toBe(32);
+    expect(2 * (result.attackPairs + result.holdoutPairs)).toBe(256);
     expect(result.winnerTies).toBe(0);
   });
 });

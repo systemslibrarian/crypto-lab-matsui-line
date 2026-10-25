@@ -923,7 +923,7 @@ function renderDlPanel(): void {
       {
         value: 'aligned',
         label: 'Aligned — the working composition',
-        hint: 'λin = 0x02 · λout = 0x4C · recovers the byte',
+        hint: 'λin = 0x02 · λout = 0x4C · 256 byte hypotheses',
       },
       {
         value: 'cancelled',
@@ -958,9 +958,11 @@ function renderDlPanel(): void {
     status.textContent = 'The settings moved — run the composition again.';
   } else if (dlView.result) {
     status.className = 'run-status is-done';
-    status.textContent = `Counted ${dlView.result.attackPairs} chosen pairs (${(
-      2 * dlView.result.attackPairs
-    ).toLocaleString()} oracle queries); ${dlView.result.holdoutPairs} held back.`;
+    const rankingQueries = 2 * dlView.result.attackPairs;
+    const verificationQueries = 2 * dlView.result.holdoutPairs;
+    status.textContent = `Ranking: ${dlView.result.attackPairs} chosen pairs / ${rankingQueries.toLocaleString()} oracle queries. Verification: ${dlView.result.holdoutPairs} fresh pairs / ${verificationQueries.toLocaleString()} more queries. Total: ${(
+      rankingQueries + verificationQueries
+    ).toLocaleString()} oracle queries.`;
   } else {
     status.className = 'run-status is-idle';
     status.textContent = `${experiment.dlBudget} chosen pairs will feed the ranking; the rest are held back for verification.`;

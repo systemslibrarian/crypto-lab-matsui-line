@@ -203,7 +203,10 @@ test('the aligned composition recovers the last-round byte from chosen pairs', a
   await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-broken');
   await expect(page.locator('#dl-verdict')).toContainText('LAST-ROUND BYTE RECOVERED');
   await expect(page.locator('#dl-verdict')).toContainText('0xA9');
-  await expect(page.locator('#dl-status')).toContainText('Counted 64 chosen pairs (128 oracle queries)');
+  const status = page.locator('#dl-status');
+  await expect(status).toContainText('Ranking: 64 chosen pairs / 128 oracle queries');
+  await expect(status).toContainText('Verification: 64 fresh pairs / 128 more queries');
+  await expect(status).toContainText('Total: 256 oracle queries');
   const top = page.locator('#dl-ranking tbody tr').first();
   await expect(top).toContainText('0xA9');
   await expect(top.locator('.marker.is-pick')).toBeVisible();
@@ -225,6 +228,8 @@ test('the holdout verification confirms the winner on pairs the ranking never sa
 
 test('the composition names its pieces: the difference, the joining state, the masks', async ({ page }) => {
   await page.goto(`.${DL_WORKING}`);
+  await expect(page.locator('label[for="dl-aligned"]')).toContainText('256 byte hypotheses');
+  await expect(page.locator('label[for="dl-aligned"]')).not.toContainText('recovers the byte');
   const setup = page.locator('#dl-setup');
   await expect(setup).toContainText('ΔX = 0x0B');
   await expect(setup).toContainText('8 of 16');

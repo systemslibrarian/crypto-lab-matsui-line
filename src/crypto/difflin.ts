@@ -295,13 +295,17 @@ export interface DlAttackResult {
 /**
  * One complete differential–linear ranking on the real cipher.
  *
- * The attacker model: chosen-plaintext access (2·budget oracle queries), the
- * joining state never observed, the true subkey never read until the verdict.
- * Each distinguishable candidate value peels the last round for both texts of
- * every pair; the guess whose peeled pair relation deviates farthest from a
- * coin flip (in either direction) is the winner. A mask spanning both nibbles
- * ranks 256 byte values. A one-nibble mask ranks only 16 nibble values: the
- * unobserved nibble is not falsely presented as recovered key material.
+ * The ranking attacker has chosen-plaintext access and spends 2·budget oracle
+ * queries. This teaching run then spends the disjoint remainder of the 128
+ * available pairs for independent verification, so the complete returned
+ * result represents 256 encryption-oracle queries; the UI reports ranking and
+ * verification costs separately. The joining state is never observed, and the
+ * true subkey is never read until the verdict. Each distinguishable candidate
+ * value peels the last round for both texts of every pair; the guess whose
+ * peeled pair relation deviates farthest from a coin flip (in either direction)
+ * is the winner. A mask spanning both nibbles ranks 256 byte values. A
+ * one-nibble mask ranks only 16 nibble values: the unobserved nibble is not
+ * falsely presented as recovered key material.
  */
 export function runDlAttack(options: {
   readonly sbox: Sbox;
