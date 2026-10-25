@@ -340,12 +340,13 @@ test('changing the composition retires a completed or in-flight success curve', 
     'The 16 observable last-round high-nibble hypotheses, ranked by absolute bias',
   );
 
-  // Retire an in-flight control measurement too. Its worker is terminated and
-  // its revision token prevents any already-queued message from landing under
-  // the aligned controls.
+  // Return to the slower 256-hypothesis design, then retire it in flight. Its
+  // worker is terminated and its revision token prevents any already-queued
+  // message from landing under the control.
+  await page.click('label[for="dl-aligned"]');
   await page.locator('#dl-measure-run').click();
   await expect(page.locator('#dl-measure-cancel')).toBeVisible();
-  await page.click('label[for="dl-aligned"]');
+  await page.click('label[for="dl-cancelled"]');
   await expect(page.locator('#dl-measure-cancel')).toBeHidden();
   await expect(page.locator('#dl-measure-result')).toBeEmpty();
   await expect(page.locator('#dl-measure-status')).toContainText('prior curve was retired');
