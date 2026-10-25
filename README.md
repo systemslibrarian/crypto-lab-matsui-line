@@ -82,7 +82,7 @@ npm run dev
 
 ## Build & Verify
 
-**121 unit tests** (Vitest, colocated in `src/`), including these known-answer tests:
+**122 unit tests** (Vitest, colocated in `src/`), including these known-answer tests:
 
 | KAT | Source | File |
 | --- | --- | --- |
@@ -99,7 +99,7 @@ npm run dev
 
 Beyond the KATs, the suite pins the claims the demo makes on screen: that the attack recovers the subkey nibble for every key over the full codebook; that it fails on the four-round cipher; that the LAT satisfies Parseval's identity and the trail correlations match a brute-force count over the real round function; and — exhaustively, over all 3,208 candidate mask pairs — that none of them names the correct low nibble for every test key under the Heys S-box, which is why the UI reports that nibble as resistant rather than showing an unexplained failure.
 
-**29 behaviour tests** (Playwright, `e2e/behaviour.spec.ts`) cover what axe cannot — the demo's story and its state machine. Each pins the key and sampling seed through the URL, so a failure means the narrative changed, not that a random draw went the other way. The differential–linear checks pin the join, fixed Heys/3-round boundary, heuristic stack, byte and nibble candidate spaces, aligned recovery, held-out verification, control cancellation, finite-sample control wording, tie ranks, stale rankings, URL persistence and stale or in-flight success curves. Existing checks still cover the default attack, sampling, advanced relations, hidden-key lifecycle, copied links, keyboard reachability, reduced motion and horizontal reflow at 320, 390, 768 and 1440px.
+**30 behaviour tests** (Playwright, `e2e/behaviour.spec.ts`) cover what axe cannot — the demo's story and its state machine. Each pins the key and sampling seed through the URL, so a failure means the narrative changed, not that a random draw went the other way. The differential–linear checks pin the join, fixed Heys/3-round boundary, heuristic stack, byte and nibble candidate spaces, aligned recovery, held-out verification, control cancellation, finite-sample control wording, tie ranks, stale rankings, URL persistence, keyboard focus across control rerenders and stale or in-flight success curves. Existing checks still cover the default attack, sampling, advanced relations, hidden-key lifecycle, copied links, keyboard reachability, reduced motion and horizontal reflow at 320, 390, 768 and 1440px.
 
 **Accessibility is gated in CI.** `@axe-core/playwright` scans the dark-theme production build for WCAG 2.1 A/AA violations at wide and 380px viewports, after a spec drives every exhibit through its learner-visible states, including both differential–linear designs and the measured curve. Zero violations, or the deploy does not run. (This gate has already caught two real defects: a hover state that dropped white-on-indigo to 4.46:1, and a muted-on-tinted LAT cell.)
 
