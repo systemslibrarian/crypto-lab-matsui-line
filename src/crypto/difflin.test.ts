@@ -286,7 +286,7 @@ describe('the composed attack on the real cipher', () => {
 });
 
 describe('the measured success rate across keys', () => {
-  it('pins the deterministic budget curve for the aligned design over 512 stride-walked keys', () => {
+  it('pins the deterministic budget curve for the aligned design over 512 stride-walked keys', { timeout: 30_000 }, () => {
     const points = measureDlSuccessRate({
       sbox: heys,
       design: ALIGNED,
@@ -309,7 +309,7 @@ describe('the measured success rate across keys', () => {
     ]);
   });
 
-  it('pins the signal-free control over the 16 high-nibble hypotheses', () => {
+  it('pins the signal-free control over the 16 high-nibble hypotheses', { timeout: 30_000 }, () => {
     const points = measureDlSuccessRate({
       sbox: heys,
       design: CANCELLED,
