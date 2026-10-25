@@ -29,6 +29,7 @@ import {
   toSearch,
   TRAFFIC_CHOICES,
   type ApproxMode,
+  type DlDesignName,
   type ExperimentState,
   type Traffic,
 } from './state/url.js';
@@ -48,6 +49,30 @@ import {
 } from './ui/cockpit.js';
 import { renderCalculator, renderCurve, renderSamplingComparison } from './ui/samples.js';
 import { mountAdvanced } from './ui/advanced.js';
+import {
+  dlBudgetNote,
+  renderDlCurve,
+  renderDlHeuristics,
+  renderDlHoldout,
+  renderDlPaths,
+  renderDlRanking,
+  renderDlSetup,
+  renderDlVerdict,
+} from './ui/difflin.js';
+import {
+  ALIGNED,
+  CANCELLED,
+  designatedPath,
+  DL_BUDGETS,
+  DL_DX,
+  naiveBias,
+  runDlAttack,
+  suffixCorrelation,
+  measureDlSuccessRate,
+  type DlAttackResult,
+  type DlDesign,
+} from './crypto/difflin.js';
+import type { DlMeasureMessage, DlMeasureRequest } from './workers/dl.worker.js';
 import { asFraction, esc, hex, magnitude, maskTerms, maskTermsPlain, percent } from './ui/format.js';
 import type { MeasureMessage, MeasureRequest } from './workers/measure.worker.js';
 
@@ -75,6 +100,8 @@ const DEFAULTS: ExperimentState = {
   customEnd: 0b1100_0000,
   masterKey: randomMasterKey(),
   seed: null,
+  dlDesign: 'aligned',
+  dlBudget: 64,
 };
 
 const experiment: ExperimentState = parseState(window.location.search, DEFAULTS);
@@ -563,6 +590,7 @@ function render(): void {
   renderLatPanel();
   renderPilingPanel();
   renderSamplesPanel();
+  renderDlPanel();
   syncUrl();
 }
 
@@ -694,6 +722,7 @@ $('key-new').addEventListener('click', () => {
   experiment.masterKey = randomMasterKey();
   view.key = generateKey(experiment.masterKey);
   view.revealKey = false;
+  if (dlView.result !== null) dlView.stale = true;
   invalidateRun();
 });
 
@@ -837,6 +866,174 @@ $('measure-compare').addEventListener('click', () => startMeasurement(true));
 $('measure-cancel').addEventListener('click', () => {
   stopMeasurement();
   $('measure-progress').innerHTML = '<p class="seg-note">Measurement cancelled — nothing partial is reported.</p>';
+});
+
+
+/* ── Differential–linear composition (exhibit 9) ────────────────────── */
+
+// The composition is a fixed lesson on one explicitly defined cipher: the
+// shared toy SPN in its 3-round form with the Heys S-box. Its masks were
+// found by exhaustive search for THIS S-box, so the cockpit's S-box switch
+// deliberately does not reach in here — the panel says so in plain text.
+const DL_SBOX = getSbox('heys');
+const DL_MEASURE_KEYS = 512;
+
+const dlView: {
+  result: DlAttackResult | null;
+  stale: boolean;
+  worker: Worker | null;
+} = { result: null, stale: false, worker: null };
+
+function dlDesign(): DlDesign {
+  return experiment.dlDesign === 'aligned' ? ALIGNED : CANCELLED;
+}
+
+function invalidateDl(): void {
+  if (dlView.result !== null) dlView.stale = true;
+  renderDlPanel();
+}
+
+function runDlComposition(): void {
+  dlView.result = runDlAttack({
+    sbox: DL_SBOX,
+    key: view.key,
+    design: dlDesign(),
+    budget: experiment.dlBudget,
+  });
+  dlView.stale = false;
+  renderDlPanel();
+}
+
+function renderDlPanel(): void {
+  const design = dlDesign();
+  renderSeg<DlDesignName>(
+    $('seg-dl'),
+    'dl',
+    [
+      {
+        value: 'aligned',
+        label: 'Aligned — the working composition',
+        hint: 'λin = 0x02 · λout = 0x4C · recovers the byte',
+      },
+      {
+        value: 'cancelled',
+        label: 'Cancelled — the control',
+        hint: 'λin = 0x04 · λout = 0xC0 · heuristic lies',
+      },
+    ],
+    experiment.dlDesign,
+    (value) => {
+      experiment.dlDesign = value;
+      invalidateDl();
+    },
+  );
+  $('dl-note').textContent = design.note;
+
+  renderSeg<number>(
+    $('seg-dlb'),
+    'dlb',
+    DL_BUDGETS.map((budget) => ({ value: budget, label: String(budget) })),
+    experiment.dlBudget,
+    (value) => {
+      experiment.dlBudget = value;
+      invalidateDl();
+    },
+  );
+  $('dlb-note').textContent = dlBudgetNote(experiment.dlBudget);
+
+  const status = $('dl-status');
+  const shown = dlView.stale ? null : dlView.result;
+  if (dlView.stale) {
+    status.className = 'run-status is-stale';
+    status.textContent = 'The settings moved — run the composition again.';
+  } else if (dlView.result) {
+    status.className = 'run-status is-done';
+    status.textContent = `Counted ${dlView.result.attackPairs} chosen pairs (${(
+      2 * dlView.result.attackPairs
+    ).toLocaleString()} oracle queries); ${dlView.result.holdoutPairs} held back.`;
+  } else {
+    status.className = 'run-status is-idle';
+    status.textContent = `${experiment.dlBudget} chosen pairs will feed the ranking; the rest are held back for verification.`;
+  }
+
+  renderDlVerdict($('dl-verdict'), {
+    result: shown,
+    design,
+    naiveBias: naiveBias(designatedPath(DL_SBOX, design, DL_DX).weight, suffixCorrelation(DL_SBOX, design)),
+    stale: dlView.stale,
+  });
+  renderDlRanking($<HTMLTableElement>('dl-ranking'), shown, shown !== null);
+  renderDlHoldout($('dl-holdout'), shown, dlView.result !== null);
+  renderDlSetup($('dl-setup'), { sbox: DL_SBOX, design });
+  renderDlPaths($('dl-paths'), { sbox: DL_SBOX, design });
+  renderDlHeuristics($('dl-heuristics'), { sbox: DL_SBOX, design }, view.key);
+}
+
+function stopDlMeasurement(): void {
+  dlView.worker?.terminate();
+  dlView.worker = null;
+  $<HTMLButtonElement>('dl-measure-run').disabled = false;
+  $<HTMLButtonElement>('dl-measure-run').textContent = 'Measure again';
+  $('dl-measure-cancel').hidden = true;
+}
+
+function startDlMeasurement(): void {
+  $<HTMLButtonElement>('dl-measure-run').disabled = true;
+  $('dl-measure-cancel').hidden = false;
+  const design = dlDesign();
+  const request: DlMeasureRequest = {
+    sboxName: 'heys',
+    designName: experiment.dlDesign,
+    budgets: [...DL_BUDGETS],
+    keyCount: DL_MEASURE_KEYS,
+  };
+  const total = DL_BUDGETS.length * DL_MEASURE_KEYS;
+  const show = (points: readonly import('./crypto/difflin.js').DlSuccessPoint[]): void => {
+    renderDlCurve($('dl-measure-result'), points, design);
+    $('dl-measure-status').textContent = `${total.toLocaleString()} complete rankings run — deterministic, the same result every time.`;
+    stopDlMeasurement();
+  };
+  const fallback = (): void => {
+    show(
+      measureDlSuccessRate({
+        sbox: DL_SBOX,
+        design,
+        budgets: [...DL_BUDGETS],
+        keyCount: DL_MEASURE_KEYS,
+      }),
+    );
+  };
+  try {
+    const worker = new Worker(new URL('./workers/dl.worker.ts', import.meta.url), { type: 'module' });
+    dlView.worker = worker;
+    $('dl-measure-status').textContent = `Measuring… 0 of ${total.toLocaleString()} rankings`;
+    worker.onmessage = (event: MessageEvent<DlMeasureMessage>) => {
+      const message = event.data;
+      if (message.kind === 'progress') {
+        $('dl-measure-status').textContent = `Measuring… ${message.completed.toLocaleString()} of ${total.toLocaleString()} rankings`;
+      } else if (message.kind === 'done') {
+        show(message.points);
+      } else {
+        $('dl-measure-status').textContent = `Measurement failed: ${message.message}`;
+        stopDlMeasurement();
+      }
+    };
+    worker.onerror = () => {
+      // No module worker available: do it on the main thread rather than fail.
+      stopDlMeasurement();
+      fallback();
+    };
+    worker.postMessage(request);
+  } catch {
+    fallback();
+  }
+}
+
+$('dl-run').addEventListener('click', runDlComposition);
+$('dl-measure-run').addEventListener('click', startDlMeasurement);
+$('dl-measure-cancel').addEventListener('click', () => {
+  stopDlMeasurement();
+  $('dl-measure-status').textContent = 'Measurement cancelled — nothing partial is reported.';
 });
 
 /* ── Wayfinder ─────────────────────────────────────────────────────── */

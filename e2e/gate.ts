@@ -242,10 +242,10 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   await assertSingleBanner(page);
 
   // `main.ts` resolves every element through a `$()` that THROWS on a miss and
-  // then renders nine exhibit sections plus research context. A navigation
+  // then renders ten exhibit sections plus research context. A navigation
   // that resolves by itself proves nothing about successful boot.
   await expect(page.locator('main#app')).toBeVisible();
-  await expect(page.locator('#app section')).toHaveCount(10);
+  await expect(page.locator('#app section')).toHaveCount(11);
   await expect(page.locator('#reduced-chacha')).toBeVisible();
   await expect(page.locator('#chacha-research-heading')).toHaveText('Research context: reduced-round ChaCha');
   await expect(page.locator('.wayfinder a')).toHaveCount(5);
@@ -290,10 +290,12 @@ export async function boot(page: Page, theme: 'dark' | 'light'): Promise<void> {
   await expect(page.locator('#measure-cancel')).toBeHidden();
   await expect(page.locator('#measure-run')).toHaveText('Measure the real success rate');
 
-  // Five disclosures, all shut. `.tune` is the only route to the S-box, target
+  // Seven disclosures, all shut. `.tune` is the only route to the S-box, target
   // nibble, approximation mode and custom-mask controls, so "shut" is also the
-  // reason four of this lab's controls are not reachable at first paint.
-  await expect(page.locator('details')).toHaveCount(5);
+  // reason four of this lab's controls are not reachable at first paint; the
+  // composition exhibit keeps its path table and heuristic stack behind two of
+  // its own, shut at first paint like every other.
+  await expect(page.locator('details')).toHaveCount(7);
   await expect(page.locator('details[open]')).toHaveCount(0);
 
   await settle(page);
@@ -988,6 +990,58 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await expect(page.locator('#measure-progress')).toContainText('complete attacks run');
   await scanAt('the measured success curve beside the predicted one');
 
+  // ── The differential–linear composition, both designs ───────────────────
+  // The shipped configuration on the session key. At 64 pairs the aligned
+  // ranking names the true subkey for 496 of the first 512 keys and ties at
+  // the top for the other 16, so the verdict class is either of the two
+  // honest outcomes — and never anything else.
+  await page.click('#dl-run');
+  await expect(page.locator('#dl-status')).toContainText('Counted 64 chosen pairs');
+  await expect(page.locator('#dl-verdict')).toHaveClass(/verdict is-(broken|partial)/);
+  await expect(page.locator('#dl-holdout')).toContainText('fresh pairs');
+  await scanAt('the composition run at the shipped configuration');
+
+  await page.click('#difflin details.deep:nth-of-type(1) > summary');
+  await expect(page.locator('#dl-paths table')).toBeVisible();
+  await scanAt('the DDT-row path table disclosed');
+  await page.click('#difflin details.deep:nth-of-type(2) > summary');
+  await expect(page.locator('#dl-heuristics table')).toBeVisible();
+  await scanAt('the heuristic stack disclosed');
+
+  // The control is deterministic in the other direction: it NEVER crowns the
+  // true subkey at 64 pairs or more, whatever the key.
+  await page.click('label[for="dl-cancelled"]');
+  await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-stale');
+  await scanAt('the control selected under a finished aligned run — stale');
+  await page.click('#dl-run');
+  await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-held');
+  await expect(page.locator('#dl-verdict')).toContainText('NO SIGNAL — THE CONTROL');
+  await scanAt('the control: heuristic promised signal, measurement says zero');
+
+  // A budget of 128 spends every pair and disables the holdout honestly.
+  await page.click('label[for="dlb-128"]');
+  await page.click('#dl-run');
+  await expect(page.locator('#dl-status')).toContainText('Counted 128 chosen pairs');
+  await expect(page.locator('#dl-holdout')).toContainText('nothing held back');
+  await scanAt('the full pair budget, no holdout left');
+
+  // The composition's success-rate measurement: cancel first (nothing partial
+  // reported), then let it finish and scan the deterministic curve.
+  await page.click('#dl-measure-run');
+  await expect(page.locator('#dl-measure-cancel')).toBeVisible();
+  await page.locator('#dl-measure-cancel').press('Enter');
+  await expect(page.locator('#dl-measure-cancel')).toBeHidden();
+  await expect(page.locator('#dl-measure-status')).toContainText('cancelled');
+  await expect(page.locator('#dl-measure-result')).toBeEmpty();
+  await scanAt('the composition measurement cancelled, nothing partial reported');
+
+  await page.click('#dl-measure-run');
+  await expect(page.locator('#dl-measure-result .dl-curve tbody tr')).toHaveCount(5, {
+    timeout: 120_000,
+  });
+  await expect(page.locator('#dl-measure-status')).toContainText('complete rankings run');
+  await scanAt('the measured composition success curve');
+
   // ── The share link ───────────────────────────────────────────────────────
   await page.click('#copy-link');
   await expect(page.locator('#copy-link')).toHaveText('Link copied — reproduces this exact run');
@@ -995,8 +1049,8 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
 
   // ── Everything open ──────────────────────────────────────────────────────
   await openAllDisclosures(page);
-  await expect(page.locator('details[open]')).toHaveCount(5);
-  await scanAt('the finished page with all five disclosures open');
+  await expect(page.locator('details[open]')).toHaveCount(7);
+  await scanAt('the finished page with all seven disclosures open');
   await soft(() => expectFocusVisibleThroughTabOrder(page, `${theme} / fully populated`));
 
   // ── All three finished verdicts, pinned ─────────────────────────────────
@@ -1018,5 +1072,22 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
     await expect(page.locator('#attack-verdict')).toContainText(what);
     await settle(page);
     await scanAt(`pinned experiment: the ${expected} verdict (${what})`);
+  }
+
+  // The composition is fully deterministic — pairs are fixed by the budget,
+  // never sampled — so a pinned key pins every count. k = 14996 (0x3A94) gives
+  // K4 = 0xA9 on the 3-round cipher; the values were measured, not guessed.
+  for (const [query, expected, what] of [
+    ['?k=14996&dl=aligned&dlb=64', 'is-broken', 'LAST-ROUND BYTE RECOVERED'],
+    ['?k=14996&dl=aligned&dlb=16', 'is-partial', 'TIED AT THE TOP'],
+    ['?k=14996&dl=cancelled&dlb=128', 'is-held', 'NO SIGNAL — THE CONTROL'],
+  ] as const) {
+    await page.goto(query);
+    await expect(page.locator('#dl-run')).toBeEnabled();
+    await page.click('#dl-run');
+    await expect(page.locator('#dl-verdict')).toHaveClass(`verdict ${expected}`);
+    await expect(page.locator('#dl-verdict')).toContainText(what);
+    await settle(page);
+    await scanAt(`pinned composition: the ${expected} verdict (${what})`);
   }
 }

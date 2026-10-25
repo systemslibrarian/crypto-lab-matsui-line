@@ -6,3 +6,4 @@ dist-ssr
 playwright-report
 test-results
 chat.md
+mutation-logs

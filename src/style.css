@@ -1877,3 +1877,131 @@ details > dl {
     justify-content: center;
   }
 }
+
+/* ── Exhibit 9: the differential–linear composition ─────────────────── */
+
+.dl-grid {
+  display: grid;
+  grid-template-columns: minmax(15rem, 22rem) 1fr;
+  gap: 1.25rem;
+  align-items: start;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 900px) {
+  .dl-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Grid and flex children default to min-width: auto, which lets a long seg
+   label push the track past a narrow viewport. The track shrinks; the
+   segmented control wraps its labels instead. */
+.dl-grid > * {
+  min-width: 0;
+}
+
+.dl-controls .seg-group {
+  margin-bottom: 0.9rem;
+}
+
+.dl-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.9rem;
+  margin: 1rem 0;
+}
+
+@media (max-width: 900px) {
+  .dl-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dl-part,
+.dl-join {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background-color: var(--panel-2);
+  padding: 0.75rem 0.9rem;
+}
+
+.dl-join {
+  border-color: var(--accent-line);
+  background-color: var(--accent-soft);
+}
+
+.dl-part h4,
+.dl-join h4,
+.dl-statistic h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  color: var(--accent-text);
+}
+
+.dl-part p,
+.dl-join p,
+.dl-statistic p {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.dl-statistic {
+  border: 1px solid var(--accent-line);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background-color: var(--accent-soft);
+  padding: 0.75rem 0.95rem;
+}
+
+.mask-line {
+  font-family: var(--mono, monospace);
+  overflow-wrap: anywhere;
+}
+
+.dl-note {
+  margin: 0.6rem 0 0;
+  font-size: 0.88rem;
+  color: var(--text-dim);
+  max-width: 80ch;
+}
+
+.dl-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background-color: var(--panel-2);
+  padding: 0.5rem;
+}
+
+.dl-paths,
+.dl-heuristics,
+.dl-curve {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.dl-paths th,
+.dl-paths td,
+.dl-heuristics th,
+.dl-heuristics td,
+.dl-curve th,
+.dl-curve td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dl-paths .is-flipped td,
+.dl-heuristics .is-measured td {
+  background-color: var(--accent-soft);
+}
+
+.dl-holdout {
+  margin-top: 0.8rem;
+  font-size: 0.88rem;
+}
+
+.dl-measure {
+  margin-top: 1.1rem;
+}

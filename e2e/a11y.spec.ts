@@ -5,7 +5,7 @@ import { boot, driveAllStates, NARROW, reportCollected, watchPageErrors } from '
  * WCAG A/AA regression gate.
  *
  * The lab is driven along everything it teaches, and every state is scanned:
- * the arrival state, with sixteen empty counters and five disclosures shut; the
+ * the arrival state, with sixteen empty counters and seven disclosures shut; the
  * skip link focused by a real Tab press; the key revealed and hidden again; the
  * attack at the shipped configuration; the stale state a changed control leaves
  * behind; all four scenario presets, including the four-round codebook run that

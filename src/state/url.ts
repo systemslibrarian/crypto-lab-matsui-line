@@ -14,6 +14,8 @@ import type { SboxName } from '../crypto/sbox.js';
 import type { NibbleHalf } from '../crypto/spn.js';
 
 export type ApproxMode = 'auto' | 'ranked' | 'custom';
+/** Which differential–linear composition exhibit 9 runs. */
+export type DlDesignName = 'aligned' | 'cancelled';
 /** Traffic is either a sample count or the whole 256-plaintext codebook. */
 export type Traffic = number | 'codebook';
 
@@ -28,11 +30,17 @@ export interface ExperimentState {
   masterKey: number;
   /** Seed for the known-plaintext draw; null means "fresh randomness each run". */
   seed: number | null;
+  /** Exhibit 9: which composition — the working one or the failing-assumption control. */
+  dlDesign: DlDesignName;
+  /** Exhibit 9: chosen-pair budget spent on the ranking (1..128). */
+  dlBudget: number;
 }
 
 const SBOXES: readonly SboxName[] = ['heys', 'present'];
 const HALVES: readonly NibbleHalf[] = ['low', 'high'];
 const MODES: readonly ApproxMode[] = ['auto', 'ranked', 'custom'];
+const DL_DESIGNS: readonly DlDesignName[] = ['aligned', 'cancelled'];
+export const DL_BUDGETS_URL: readonly number[] = [16, 32, 64, 96, 128];
 export const TRAFFIC_CHOICES: readonly Traffic[] = [16, 64, 256, 1024, 4096, 'codebook'];
 
 function clampByte(value: number, fallback: number): number {
@@ -75,6 +83,16 @@ export function parseState(search: string, defaults: ExperimentState): Experimen
     if (Number.isFinite(seed)) state.seed = Math.trunc(seed) >>> 0;
   }
 
+  const dl = params.get('dl');
+  if (dl && (DL_DESIGNS as readonly string[]).includes(dl)) state.dlDesign = dl as DlDesignName;
+
+  if (params.has('dlb')) {
+    const budget = Number(params.get('dlb'));
+    if (Number.isFinite(budget) && DL_BUDGETS_URL.includes(Math.trunc(budget))) {
+      state.dlBudget = Math.trunc(budget);
+    }
+  }
+
   return state;
 }
 
@@ -92,6 +110,8 @@ export function toSearch(state: ExperimentState): string {
   }
   params.set('k', String(state.masterKey));
   if (state.seed !== null) params.set('seed', String(state.seed));
+  params.set('dl', state.dlDesign);
+  params.set('dlb', String(state.dlBudget));
   return `?${params.toString()}`;
 }
 
