@@ -173,6 +173,12 @@ describe('the composed attack on the real cipher', () => {
     expect(result.attackPairs).toBe(64);
   });
 
+  it('rejects invalid budgets at the complete attack API boundary', () => {
+    for (const budget of [0, 12.5, 129]) {
+      expect(() => runDlAttack({ sbox: heys, key: pinnedKey, design: ALIGNED, budget })).toThrow(RangeError);
+    }
+  });
+
   it('shows the full-codebook pair statistic is key-dependent, not a fixed 5/16', () => {
     for (const [masterKey, agreements, bias] of [
       [14996, 104, 5 / 16],
@@ -276,10 +282,24 @@ describe('the composed attack on the real cipher', () => {
     expect(finite.measuredBias).toBe(-1 / 8);
   });
 
-  it('never counts an alias as a distinct candidate in the aligned design', () => {
-    // In the aligned design λout spans both nibbles, so every one of the 256
-    // guesses is a distinct statistic (verified across keys: no ties at the
-    // top at budgets 96 and 128 in the success measurement below).
+  it('proves all 256 aligned hypotheses define distinct pair statistics', () => {
+    // For guess k, write f_k(c) = <λout, S⁻¹(c ⊕ k)>. Pair ranking
+    // observes f_k(c1) ⊕ f_k(c2), so two guesses are aliases exactly when
+    // their one-ciphertext truth tables are equal up to a constant complement.
+    // Normalize away that constant at c=0, then require 256 unique tables.
+    const signatures = Array.from({ length: 256 }, (_, guess) => {
+      const values = Array.from({ length: 256 }, (_, ciphertext) => {
+        const peeled =
+          (heys.inverse[(ciphertext ^ guess) >> 4] << 4) |
+          heys.inverse[(ciphertext ^ guess) & 0x0f];
+        return dot(ALIGNED.lambdaOut, peeled);
+      });
+      return values.map((value) => value ^ values[0]).join('');
+    });
+    expect(new Set(signatures).size).toBe(256);
+
+    // The sampled run remains a separate end-to-end check of the ranking and
+    // the fixed 128-pair oracle accounting.
     const result = runDlAttack({ sbox: heys, key: pinnedKey, design: ALIGNED, budget: 96 });
     expect(result.attackPairs).toBe(96);
     expect(result.holdoutPairs).toBe(32);

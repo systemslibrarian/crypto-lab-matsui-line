@@ -243,7 +243,15 @@ function renderSeg<T extends string | number>(
     input.addEventListener('change', () => {
       if (!input.checked) return;
       const picked = options.find((o) => String(o.value) === input.value);
-      if (picked) onPick(picked.value);
+      if (!picked) return;
+      // Most selections synchronously rerender their panel. Preserve the
+      // native radio group's keyboard position across that replacement so a
+      // learner can keep using ArrowLeft/ArrowRight instead of being dropped
+      // onto <body> after the first choice.
+      const restoreFocus = document.activeElement === input;
+      const replacementId = input.id;
+      onPick(picked.value);
+      if (restoreFocus) document.getElementById(replacementId)?.focus();
     });
   });
 }

@@ -318,8 +318,11 @@ export function runDlAttack(options: {
   const dX = options.dX ?? DL_DX;
   const designated = designatedPath(sbox, design, dX);
   const rhs = dot(design.lambdaIn, designated.joiningDiff);
+  // Validate the public API's budget itself. Calling chosenPairs only for the
+  // full codebook would otherwise let slice() silently clamp oversized values,
+  // truncate fractions, and turn zero into an empty ranking with NaN bias.
+  const attack = chosenPairs(dX, budget);
   const pairs = chosenPairs(dX, 128);
-  const attack = pairs.slice(0, budget);
   const holdout = pairs.slice(budget);
 
   const counts = new Array<number>(256).fill(0);

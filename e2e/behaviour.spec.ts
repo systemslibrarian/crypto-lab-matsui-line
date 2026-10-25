@@ -333,6 +333,20 @@ test('changing composition settings retires the previous ranking', async ({ page
   await expect(rerunStatus).toContainText('Total: 256 oracle queries');
 });
 
+test('composition radio groups retain keyboard focus across rerenders', async ({ page }) => {
+  await page.goto('.?dl=aligned&dlb=16');
+  await page.locator('#dlb-16').focus();
+  await expect(page.locator('#dlb-16')).toBeFocused();
+
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#dlb-32')).toBeChecked();
+  await expect(page.locator('#dlb-32')).toBeFocused();
+
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#dlb-64')).toBeChecked();
+  await expect(page.locator('#dlb-64')).toBeFocused();
+});
+
 test('composition controls update the URL and survive reload', async ({ page }) => {
   await page.goto(`.${DL_WORKING}`);
   await expect(page.locator('#dl-measure-run')).toHaveText('Measure the real success rate');
