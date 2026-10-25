@@ -992,9 +992,9 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
 
   // ── The differential–linear composition, both designs ───────────────────
   // The shipped configuration on the session key: 96 chosen pairs. Over the
-  // whole 16-bit key space that budget names the true subkey for 99.3% of
-  // keys, ties for 0.2% and loses to the noise for the rest — and which one
-  // this session's key produces is a property of the key, not of the drive.
+  // deterministic 512-key walk that budget puts the true subkey at the top
+  // for 511 keys — and which outcome this session's key produces is a
+  // property of the key, not of the drive.
   // Like the four-round preset above, the class is asserted as the set of
   // honest outcomes; the pinned segment at the end proves a specific one.
   await page.click('#dl-run');
@@ -1010,8 +1010,10 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   await expect(page.locator('#dl-heuristics table')).toBeVisible();
   await scanAt('the heuristic stack disclosed');
 
-  // The control is deterministic in the other direction: it NEVER crowns the
-  // true subkey at 64 pairs or more, whatever the key.
+  // The control is deterministic in the other direction at the larger
+  // budgets: its zero-bias statistic ranks only the 16 observable high-nibble
+  // hypotheses and never puts the true nibble at the top at 96 or 128 pairs
+  // on the 512-key walk.
   await page.click('label[for="dl-cancelled"]');
   await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-stale');
   await scanAt('the control selected under a finished aligned run — stale');

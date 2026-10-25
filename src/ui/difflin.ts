@@ -12,6 +12,8 @@ import {
   pathPairBias,
   prefixPaths,
   runDlAttack,
+  subkeyCandidates,
+  subkeyTargetMask,
   suffixCorrelation,
   type DlAttackResult,
   type DlDesign,
@@ -32,6 +34,11 @@ export function renderDlSetup(el: HTMLElement, { sbox, design }: DlSetup): void 
   const corr = suffixCorrelation(sbox, design);
   const eps = Math.abs(corr) / 2;
   el.innerHTML = `
+    <p class="dl-boundary">
+      <strong>Fixed lesson boundary:</strong> this exhibit always uses the Heys S-box and the shared toy SPN's
+      3-round reduced form. The cockpit's S-box and round controls do not alter it. It demonstrates this selected
+      construction; it does not claim an attack on the full 4-round toy cipher or on a production cipher.
+    </p>
     <div class="dl-split">
       <div class="dl-part">
         <h4>Differential prefix — round 1</h4>
@@ -62,7 +69,7 @@ export function renderDlSetup(el: HTMLElement, { sbox, design }: DlSetup): void 
     <div class="dl-statistic">
       <h4>The composed statistic, on chosen pairs</h4>
       <p>
-        For each pair (x, x⊕ΔX), peel the last round under a candidate subkey byte g and count agreement of
+        For each pair (x, x⊕ΔX), peel the last round under a distinguishable subkey hypothesis g and count agreement of
         <span class="mask-line">⟨λout, v⟩ ⊕ ⟨λout, v'⟩ = ⟨λin, ΔY⟩</span>
         where the right-hand side is <strong>${designated.lambdaInDot}</strong> for this design.
         The two approximation constants b cancel in the pair — which is the entire trick.
@@ -74,11 +81,12 @@ export function renderDlSetup(el: HTMLElement, { sbox, design }: DlSetup): void 
 
 /** The DDT row of the chosen difference, path by path, with what λin sees. */
 export function renderDlPaths(el: HTMLElement, { sbox, design }: DlSetup): void {
+  const fixedRhs = designatedPath(sbox, design, 0x0b).lambdaInDot;
   const rows = prefixPaths(sbox, design, 0x0b)
     .map((path) => {
-      const bias = pathPairBias(sbox, design, path.joiningDiff);
+      const bias = pathPairBias(sbox, design, path.joiningDiff, fixedRhs);
       return `
-        <tr${path.lambdaInDot === 0 ? '' : ' class="is-flipped"'}>
+        <tr${path.lambdaInDot === fixedRhs ? '' : ' class="is-flipped"'}>
           <td class="num">${hex(path.sboxDiff)}</td>
           <td class="num">${Math.round(path.weight * 16)}/16</td>
           <td class="num">${hex(path.joiningDiff)}</td>
@@ -102,7 +110,7 @@ export function renderDlPaths(el: HTMLElement, { sbox, design }: DlSetup): void 
             <th scope="col" class="num">Weight</th>
             <th scope="col" class="num">Joining Δ'</th>
             <th scope="col" class="num">⟨λin, Δ'⟩</th>
-            <th scope="col" class="num">Exact pair bias</th>
+            <th scope="col" class="num">Bias vs fixed RHS ${fixedRhs}</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -141,7 +149,7 @@ export function renderDlHeuristics(
           <tr>
             <td>Path-aware: <strong>Σ wᵢ·biasᵢ</strong></td>
             <td class="num">${asFraction(aware, 1024)}</td>
-            <td>Same, plus: joining values are uniform within each DDT path.</td>
+            <td>The complete DDT row is included; joining values are uniform within each path.</td>
           </tr>
           <tr class="is-measured">
             <td><strong>Measured</strong> — all 128 pairs, this session's key</td>
@@ -154,32 +162,38 @@ export function renderDlHeuristics(
     ${
       design.name === 'aligned'
         ? `<p>
-             The naive heuristic <em>understates</em> this cipher by more than half. The reason is in the table above:
+             The naive heuristic <em>understates</em> this cipher. The reason is in the table above:
              every path of this DDT row leaves ⟨λin, Δ'⟩ = ${designated.lambdaInDot}, so the off-path assumption fails
-             upward — the off-path pairs carry the <em>same</em> pair bias as the designated path. The differential
-             still matters: it selects a DDT row whose paths align. Other differences do not.
+             upward. The path-aware estimate is ${asFraction(aware, 1024)}; this session measures
+             <strong>${signed(measured.measuredBias)}</strong>. Across keys the full-codebook measurement is 1/4 or 5/16,
+             because the joining values within each path are not a uniform independent population. The differential
+             still matters: it selects a DDT row whose signed path contributions reinforce.
            </p>`
         : `<p>
-             The control. The heuristic promises ${asFraction(naive, 1024)} — and the cipher measures
-             <strong>${signed(measured.measuredBias)}</strong>, exactly zero, for every key. The paths of the same DDT row
-             move ⟨λin, Δ'⟩ in both directions and their contributions cancel. An attacker who trusted the heuristic
-             would spend queries ranking noise.
+             The control. The naive heuristic promises ${asFraction(naive, 1024)}, but the signed path sum is
+             <strong>${asFraction(aware, 1024)}</strong> and the cipher measures
+             <strong>${signed(measured.measuredBias)}</strong>, exactly zero. The attack uses the designated path's
+             right-hand side for every pair; paths with the opposite ⟨λin, Δ'⟩ therefore contribute with the opposite
+             sign. Enumerating the DDT row catches the cancellation that the naive off-path assumption misses.
            </p>`
     }
   `;
 }
 
-/** The 256-candidate ranking: top rows now, the truth marked only after a run. */
+/** The distinguishable-candidate ranking: top rows now, truth marked after a run. */
 export function renderDlRanking(
   table: HTMLTableElement,
   result: DlAttackResult | null,
   reveal: boolean,
+  design: DlDesign,
 ): void {
+  const targetMask = subkeyTargetMask(design);
+  const targetLabel = targetMask === 0xff ? 'Byte guess' : targetMask === 0xf0 ? 'High-nibble guess' : 'Low-nibble guess';
   if (!result) {
     table.innerHTML = `
       ${table.querySelector('caption')?.outerHTML ?? ''}
       <thead>
-        <tr><th scope="col" class="num">Rank</th><th scope="col" class="num">Subkey guess</th><th scope="col" class="num">Agreements</th><th scope="col" class="num">Bias</th></tr>
+        <tr><th scope="col" class="num">Rank</th><th scope="col" class="num">${targetLabel}</th><th scope="col" class="num">Agreements</th><th scope="col" class="num">Bias</th></tr>
       </thead>
       <tbody>
         ${Array.from({ length: 8 }, () => `<tr><td class="num">·</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>`).join('')}
@@ -188,11 +202,11 @@ export function renderDlRanking(
     return;
   }
   const half = result.attackPairs / 2;
-  const ranked = result.counts
-    .map((count, guess) => ({ guess, count, excess: Math.abs(count - half) }))
+  const ranked = result.candidates
+    .map((guess) => ({ guess, count: result.counts[guess], excess: Math.abs(result.counts[guess] - half) }))
     .sort((a, b) => b.excess - a.excess || a.guess - b.guess);
   const top = ranked.slice(0, 8);
-  const trueRow = ranked.find((row) => row.guess === result.trueSubkey);
+  const trueRow = ranked.find((row) => row.guess === result.trueTarget);
   const rows = top.map((row) => dlRankRow(row, result, reveal, ranked.indexOf(row) + 1));
   if (reveal && trueRow && !top.includes(trueRow)) {
     rows.push(dlRankRow(trueRow, result, reveal, ranked.indexOf(trueRow) + 1));
@@ -200,7 +214,7 @@ export function renderDlRanking(
   table.innerHTML = `
     ${table.querySelector('caption')?.outerHTML ?? ''}
     <thead>
-      <tr><th scope="col" class="num">Rank</th><th scope="col" class="num">Subkey guess</th><th scope="col" class="num">Agreements</th><th scope="col" class="num">Bias</th></tr>
+      <tr><th scope="col" class="num">Rank</th><th scope="col" class="num">${targetLabel}</th><th scope="col" class="num">Agreements</th><th scope="col" class="num">Bias</th></tr>
     </thead>
     <tbody>${rows.join('')}</tbody>
   `;
@@ -213,10 +227,10 @@ function dlRankRow(
   rank: number,
 ): string {
   const isWinner = row.guess === result.winner;
-  const isTrue = reveal && row.guess === result.trueSubkey;
+  const isTrue = reveal && row.guess === result.trueTarget;
   const markers: string[] = [];
-  if (reveal && isTrue) markers.push('<span class="marker is-key">actual key</span>');
-  if (isWinner) markers.push('<span class="marker is-pick">top count</span>');
+  if (reveal && isTrue) markers.push(`<span class="marker is-key">actual ${result.targetMask === 0xff ? 'byte' : 'nibble'}</span>`);
+  if (isWinner) markers.push('<span class="marker is-pick">largest |bias|</span>');
   const bias = (row.count - result.attackPairs / 2) / result.attackPairs;
   return `
     <tr class="${isTrue ? 'is-correct' : ''}${isWinner && !isTrue ? ' is-wrong-pick' : ''}">
@@ -245,7 +259,9 @@ export function renderDlVerdict(
   }
   if (!result) {
     el.className = 'verdict is-armed';
-    el.innerHTML = `<div class="verdict-head"><span class="verdict-icon" aria-hidden="true">○</span><span>READY — NO PAIRS SPENT</span></div><p>256 candidate values of the last whitening byte, no evidence yet. Spend a chosen-plaintext budget and see which candidate stops looking like a coin flip.</p>`;
+    const candidates = subkeyCandidates(design).length;
+    const target = subkeyTargetMask(design) === 0xff ? 'byte values' : 'high-nibble values';
+    el.innerHTML = `<div class="verdict-head"><span class="verdict-icon" aria-hidden="true">○</span><span>READY — NO PAIRS SPENT</span></div><p>${candidates} distinguishable ${target}, no evidence yet. Spend a chosen-plaintext budget and see which hypothesis deviates farthest from a coin flip.</p>`;
     return;
   }
   if (design.name === 'cancelled') {
@@ -254,10 +270,10 @@ export function renderDlVerdict(
       <div class="verdict-head"><span class="verdict-icon" aria-hidden="true">■</span><span>NO SIGNAL — THE CONTROL</span></div>
       <p>
         The heuristic promised ${asFraction(naiveBias, 1024)};
-        the measurement says <strong>${signed(result.measuredBias)}</strong>. The winner of this ranking is noise wearing
-        a crown — over 512 keys this configuration crowns the true subkey 0 times at 64 pairs or more.
-        The assumption that failed: that pairs off the designated differential contribute no bias. Here they
-        contribute the opposite bias, and cancel exactly.
+        the signed path sum and measurement both say <strong>${signed(result.measuredBias)}</strong>. This output mask
+        observes only the high key nibble, so the page ranks ${result.candidates.length} high-nibble hypotheses—not 256 pretend byte guesses.
+        Over 512 deterministic keys the signal-free ranking recovers that nibble 0 times at 96 and 128 pairs.
+        The naive assumption that failed was that off-path pairs wash out; the path table exposes their cancellation.
       </p>`;
     return;
   }
@@ -266,10 +282,10 @@ export function renderDlVerdict(
     el.innerHTML = `
       <div class="verdict-head"><span class="verdict-icon" aria-hidden="true">◆</span><span>LAST-ROUND BYTE RECOVERED</span></div>
       <p>
-        One candidate — <strong>${hex(result.winner)}</strong> — separated from 255 rivals on
+        One candidate — <strong>${hex(result.winner)}</strong> — separated from ${result.candidates.length - 1} rivals on
         ${result.attackPairs} chosen pairs. The heuristic predicted a bias of
         ${asFraction(naiveBias, 1024)};
-        the right guess actually agreed <strong>${result.counts[result.trueSubkey]} / ${result.attackPairs}</strong> times.
+        the right guess actually agreed <strong>${result.counts[result.trueTarget]} / ${result.attackPairs}</strong> times.
       </p>`;
     return;
   }
@@ -278,7 +294,7 @@ export function renderDlVerdict(
     el.innerHTML = `
       <div class="verdict-head"><span class="verdict-icon" aria-hidden="true">◐</span><span>TIED AT THE TOP</span></div>
       <p>
-        The top count is shared by ${result.winnerTies + 1} candidates. This is the honest reading of a starved
+        The largest absolute deviation is shared by ${result.winnerTies + 1} candidates. This is the honest reading of a starved
         budget — the statistic cannot separate them, and the page does not pretend it did.
       </p>`;
     return;
@@ -286,7 +302,7 @@ export function renderDlVerdict(
   el.className = 'verdict is-held';
   el.innerHTML = `
     <div class="verdict-head"><span class="verdict-icon" aria-hidden="true">■</span><span>NOT SEPARATED THIS TIME</span></div>
-    <p>The top count went to a different candidate. At this budget the composed bias (${asFraction(Math.abs(result.measuredBias), 1024)}) is inside the noise of 256 counters — an honest finite-sample failure, not a broken mechanism.</p>`;
+    <p>The largest absolute deviation belonged to a different candidate. At this budget the composed bias (${asFraction(Math.abs(result.measuredBias), 1024)}) is inside the noise of ${result.candidates.length} counters — an honest finite-sample failure, not a broken mechanism.</p>`;
 }
 
 /** The holdout verification: fresh pairs the ranking never touched. */
@@ -303,8 +319,8 @@ export function renderDlHoldout(el: HTMLElement, result: DlAttackResult | null, 
     <p>
       <strong>Independent check on ${result.holdoutPairs} fresh pairs</strong> (the ranking never saw them):
       the winning guess keeps <strong>${winnerHeld} / ${result.holdoutPairs}</strong> agreements
-      (bias ${signed(result.winnerHoldoutBias)}), while the best of the 255
-      wrong guesses manages <strong>${Math.round(bestWrongHeld)} / ${result.holdoutPairs}</strong>
+      (bias ${signed(result.winnerHoldoutBias)}), while the strongest of the ${result.candidates.length - 1}
+      wrong ${result.targetMask === 0xff ? 'byte' : 'nibble'} guesses manages <strong>${Math.round(bestWrongHeld)} / ${result.holdoutPairs}</strong>
       (bias ${signed(result.maxWrongHoldoutBias)}).
       ${
         result.holdoutConfirms
@@ -333,19 +349,19 @@ export function renderDlCurve(el: HTMLElement, points: readonly DlSuccessPoint[]
       the same deterministic ranking, run over ${points[0]?.trials.toLocaleString() ?? 0} keys
       (${
         design.name === 'aligned'
-          ? 'master keys 0, 129, 258, … — a fixed odd stride that walks the whole 16-bit key space fairly, chosen pairs fixed by the budget'
-          : 'the control: the same machinery, the same key walk, on the cancelled composition'
+          ? 'master keys 0, 129, 258, … — a fixed odd stride that disperses this bounded sample across the 16-bit key space; it is reproducible, not a random population estimate'
+          : 'the control: 16 observable high-nibble hypotheses, the same machinery and key walk, on the cancelled composition'
       }). No randomness anywhere — the same inputs give the same curve every time.
     </p>
     <div class="dl-scroll" role="region" aria-label="Measured ranking success by budget" tabindex="0">
       <table class="dl-curve">
-        <caption class="sr-only">Measured success rate of the subkey ranking across keys, per chosen-pair budget.</caption>
+        <caption class="sr-only">Measured rate at which the true key target reaches the top equivalence class, per chosen-pair budget.</caption>
         <thead>
           <tr>
             <th scope="col" class="num">Pairs spent</th>
             <th scope="col" class="num">Keys tried</th>
-            <th scope="col" class="num">Winner was the key</th>
-            <th scope="col" class="num">Ties among wins</th>
+            <th scope="col" class="num">True target at top</th>
+            <th scope="col" class="num">Top results that tied</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>

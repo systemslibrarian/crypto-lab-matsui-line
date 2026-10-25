@@ -1,6 +1,6 @@
 /**
  * The differential–linear success-rate measurement runs up to
- * 5 budgets × 512 keys × 256 candidate guesses × 128 pairs of real cipher
+ * 5 budgets × 512 keys × up to 256 candidate guesses × 128 pairs of real cipher
  * work — millions of S-box lookups. Like the linear lab's measurement, it
  * runs off the main thread and reports real progress, so the count being
  * watched is the count being performed.

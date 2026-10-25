@@ -135,11 +135,22 @@ const cases = [
     patches: [
       patch(
         'src/crypto/difflin.ts',
-        'total += path.weight * pathPairBias(sbox, design, path.joiningDiff);',
-        'total -= path.weight * pathPairBias(sbox, design, path.joiningDiff);',
+        'total += path.weight * pathPairBias(sbox, design, path.joiningDiff, rhs);',
+        'total -= path.weight * pathPairBias(sbox, design, path.joiningDiff, rhs);',
       ),
     ],
     owner: 'the heuristic stack shows all three numbers',
+  },
+  {
+    name: 'path-aware estimate changes the fixed attack equation per path',
+    patches: [
+      patch(
+        'src/crypto/difflin.ts',
+        'total += path.weight * pathPairBias(sbox, design, path.joiningDiff, rhs);',
+        'total += path.weight * pathPairBias(sbox, design, path.joiningDiff, path.lambdaInDot);',
+      ),
+    ],
+    owner: 'the control measures exactly zero where the heuristic promised signal',
   },
   {
     name: 'last-round peel uses the forward S-box',
@@ -180,6 +191,39 @@ const cases = [
       patch('src/crypto/difflin.ts', 'wins += 1;', 'wins -= 1;'),
     ],
     owner: 'the measured success rate is a deterministic curve',
+  },
+  {
+    name: 'one-nibble control pretends to rank full-byte guesses',
+    patches: [
+      patch(
+        'src/crypto/difflin.ts',
+        'const candidates = subkeyCandidates(design);',
+        'const candidates = Array.from({ length: 256 }, (_, guess) => guess);',
+      ),
+    ],
+    owner: 'the control measures exactly zero where the heuristic promised signal',
+  },
+  {
+    name: 'top tie ignores the true key unless it sorts first',
+    patches: [
+      patch(
+        'src/crypto/difflin.ts',
+        'const trueAtTop = excess(trueTarget) === excess(winner);',
+        'const trueAtTop = winner === trueTarget;',
+      ),
+    ],
+    owner: 'a top tie includes the true byte even when numeric ordering lists another guess first',
+  },
+  {
+    name: 'composition change leaves the prior success curve visible',
+    patches: [
+      patch(
+        'src/main.ts',
+        "stopDlMeasurement();\n  $('dl-measure-result').replaceChildren();\n  $('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';",
+        "stopDlMeasurement();\n  $('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';",
+      ),
+    ],
+    owner: 'changing the composition retires a completed or in-flight success curve',
   },
 ];
 

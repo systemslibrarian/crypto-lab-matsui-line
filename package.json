@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:a11y": "playwright test",
+    "test:mutations": "node scripts/check-mutations.mjs",
     "test:visual": "VISUAL=1 playwright test e2e/visual.spec.ts"
   },
   "devDependencies": {

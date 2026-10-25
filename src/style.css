@@ -467,6 +467,14 @@ body {
   align-items: stretch;
 }
 
+/* Stacked choices carry explanatory mask labels. They must wrap rather than
+   forcing the 320px learner viewport wider than the page. */
+.seg-stack .seg-label {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .seg-input {
   position: absolute;
   width: 1px;

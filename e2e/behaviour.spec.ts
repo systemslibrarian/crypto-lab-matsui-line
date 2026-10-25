@@ -233,6 +233,9 @@ test('the composition names its pieces: the difference, the joining state, the m
   await expect(setup).toContainText('entering round 2');
   await expect(setup).toContainText('−0.7500');
   await expect(setup).toContainText('ε = 3/8');
+  await expect(setup).toContainText('always uses the Heys S-box');
+  await expect(setup).toContainText('cockpit\'s S-box and round controls do not alter it');
+  await expect(setup).toContainText('does not claim an attack on the full 4-round toy cipher');
 });
 
 test('the heuristic stack shows all three numbers, including the honest mismatch', async ({ page }) => {
@@ -251,18 +254,20 @@ test('the control measures exactly zero where the heuristic promised signal', as
   await page.locator('#dl-run').click();
   await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-held');
   await expect(page.locator('#dl-verdict')).toContainText('NO SIGNAL — THE CONTROL');
-  await expect(page.locator('#dl-verdict')).toContainText('crowns the true subkey 0 times');
+  await expect(page.locator('#dl-verdict')).toContainText('ranks 16 high-nibble hypotheses');
+  await expect(page.locator('#dl-verdict')).toContainText('0 times at 96 and 128 pairs');
   // The ranking ran and crowned noise: the top row is the pick, not the key.
   // The real key is still shown — appended at its true rank, marked, so the
   // learner can see how far down the control pushed it.
   const topRow = page.locator('#dl-ranking tbody tr').first();
   await expect(topRow.locator('.marker.is-pick')).toBeVisible();
+  await expect(topRow.locator('.marker.is-pick')).toHaveText('largest |bias|');
   await expect(topRow.locator('.marker.is-key')).toHaveCount(0);
   await expect(page.locator('#dl-ranking .marker.is-key')).toHaveCount(1);
   const heuristicsPanel = page.locator('#difflin details.deep').nth(1).locator('summary');
   await heuristicsPanel.click();
   await expect(page.locator('#dl-heuristics')).toContainText('+1/16');
-  await expect(page.locator('#dl-heuristics')).toContainText('+1/8');
+  await expect(page.locator('#dl-heuristics')).toContainText('signed path sum is 0');
   await expect(page.locator('#dl-heuristics')).toContainText('0.0000');
 });
 
@@ -271,6 +276,19 @@ test('a starved budget produces an honest tie, not a quiet success', async ({ pa
   await page.locator('#dl-run').click();
   await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-partial');
   await expect(page.locator('#dl-verdict')).toContainText('TIED AT THE TOP');
+});
+
+test('a top tie includes the true byte even when numeric ordering lists another guess first', async ({ page }) => {
+  await page.goto('.?k=5418&dl=aligned&dlb=16');
+  await page.locator('#dl-run').click();
+  await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-partial');
+  await expect(page.locator('#dl-verdict')).toContainText('TIED AT THE TOP');
+  const first = page.locator('#dl-ranking tbody tr').first();
+  await expect(first).toContainText('0x42');
+  await expect(first.locator('.marker.is-pick')).toBeVisible();
+  await expect(first.locator('.marker.is-key')).toHaveCount(0);
+  await expect(page.locator('#dl-ranking .marker.is-key')).toHaveCount(1);
+  await expect(page.locator('#dl-ranking .marker.is-key')).toHaveText('actual byte');
 });
 
 test('changing composition settings retires the previous ranking', async ({ page }) => {
@@ -296,18 +314,41 @@ test('the measured success rate is a deterministic curve over 512 keys', async (
   await expect(page.locator('#dl-measure-result .dl-curve tbody tr')).toHaveCount(5, { timeout: 120_000 });
   const rows = page.locator('#dl-measure-result .dl-curve tbody tr');
   // The pinned deterministic curve over the stride-129 key walk:
-  // 21.5%, 55.9%, 83.4%, 99.8%, 100.0%. The whole 16-bit space measures
-  // 24%, 55%, 84%, 99.5% and 100% — the walk is fair, and it shows the
-  // finite-sample truth instead of a flat promise. The cells are matched
-  // exactly (toHaveText, not contains) so a sign error cannot hide inside
-  // a substring.
+  // A tie counts as partial recovery whenever the true byte is anywhere in
+  // the top equivalence class, not only when numeric tie-breaking happens to
+  // list it first. The cells are matched exactly so a sign error cannot hide
+  // inside a substring.
   const rate = (row: number) => rows.nth(row).locator('td').nth(2);
-  await expect(rate(0)).toHaveText('21.5%');
-  await expect(rate(1)).toHaveText('55.9%');
-  await expect(rate(2)).toHaveText('83.4%');
+  await expect(rate(0)).toHaveText('31.3%');
+  await expect(rate(1)).toHaveText('66.8%');
+  await expect(rate(2)).toHaveText('90.2%');
   await expect(rate(3)).toHaveText('99.8%');
   await expect(rate(4)).toHaveText('100.0%');
   await expect(page.locator('#dl-measure-status')).toContainText('2,560 complete rankings run');
+});
+
+test('changing the composition retires a completed or in-flight success curve', async ({ page }) => {
+  await page.goto(`.${DL_WORKING}`);
+  await page.locator('#dl-measure-run').click();
+  await expect(page.locator('#dl-measure-result .dl-curve tbody tr')).toHaveCount(5, { timeout: 120_000 });
+  await page.click('label[for="dl-cancelled"]');
+  await expect(page.locator('#dl-measure-cancel')).toBeHidden();
+  await expect(page.locator('#dl-measure-result')).toBeEmpty();
+  await expect(page.locator('#dl-measure-status')).toContainText('prior curve was retired');
+  await expect(page.locator('.ranking-wrap')).toHaveAttribute(
+    'aria-label',
+    'The 16 observable last-round high-nibble hypotheses, ranked by absolute bias',
+  );
+
+  // Retire an in-flight control measurement too. Its worker is terminated and
+  // its revision token prevents any already-queued message from landing under
+  // the aligned controls.
+  await page.locator('#dl-measure-run').click();
+  await expect(page.locator('#dl-measure-cancel')).toBeVisible();
+  await page.click('label[for="dl-aligned"]');
+  await expect(page.locator('#dl-measure-cancel')).toBeHidden();
+  await expect(page.locator('#dl-measure-result')).toBeEmpty();
+  await expect(page.locator('#dl-measure-status')).toContainText('prior curve was retired');
 });
 
 test('a share link reproduces the exact composition', async ({ page }) => {

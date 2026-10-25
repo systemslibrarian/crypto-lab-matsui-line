@@ -571,7 +571,7 @@
             Differential cryptanalysis drives the first round with a chosen difference; linear cryptanalysis reads the
             second with a biased parity. Langford and Hellman (1994) joined exactly such pieces into one statistic on
             DES. Here the join happens at an explicit state — the input to round 2 — and every number is measured on
-            the real toy cipher.
+            the real toy cipher. This is a fixed 3-round Heys-S-box lesson; the cockpit controls above do not alter it.
           </p>
         </div>
 
@@ -595,11 +595,11 @@
 
           <div class="dl-result">
             <div id="dl-verdict" class="verdict" role="status" aria-live="polite"></div>
-            <div class="ranking-wrap" role="region" aria-label="The 256 subkey candidates, top counts first" tabindex="0">
+            <div class="ranking-wrap" role="region" aria-label="Distinguishable subkey hypotheses ranked by absolute bias" tabindex="0">
               <table class="ranking" id="dl-ranking">
                 <caption class="sr-only">
-                  Candidate values of the last whitening key byte, ranked by how far the composed pair statistic
-                  sits from a coin flip.
+                  Distinguishable values of the last whitening key material, ranked by how far the composed pair
+                  statistic sits from a coin flip.
                 </caption>
               </table>
             </div>
@@ -615,7 +615,7 @@
         </details>
 
         <details class="deep">
-          <summary>The heuristic, its assumptions, and where each one fails</summary>
+          <summary>The heuristic, its assumptions, and where the predictions diverge</summary>
           <div id="dl-heuristics"></div>
         </details>
 
@@ -630,10 +630,12 @@
 
         <div class="callout">
           <p>
-            <strong>Why only three rounds.</strong> An 8-bit block admits just 128 distinct pairs with a fixed
-            difference. The full four-round cipher's best composed bias in this exhibit's search space is far below
-            what 128 pairs can measure, so the lesson runs on the same 3-round reduced form the cockpit offers. That
-            is a property of the toy's data budget, not of differential–linear cryptanalysis.
+            <strong>Why this is bounded to three rounds.</strong> An 8-bit block admits just 128 distinct pairs with a
+            fixed nonzero difference. This selected construction therefore runs on the same 3-round reduced form the
+            cockpit offers. It does not claim these masks are optimal for four rounds, and it does not demonstrate an
+            attack on the full toy cipher. The construction follows Langford and Hellman's
+            <a href="https://doi.org/10.1007/3-540-48658-5_3"><em>Differential–Linear Cryptanalysis</em></a>
+            (CRYPTO '94); the scale and cipher here are explicitly pedagogical.
           </p>
         </div>
       </section>

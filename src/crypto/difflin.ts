@@ -21,17 +21,19 @@
  *      still assumes uniform intermediate values within each path)
  *   3. the measured value, from real chosen pairs on the real cipher.
  *
- * On this toy cipher the three disagree in ways the exhibit makes visible:
- * for the aligned design every path through the DDT row leaves the same value
- * of <λin, Δ'>, so the off-path assumption fails *upward* (measured 5/16
- * against the naive 9/64); for the cancelled design the paths carry opposite
- * signs and the measured bias is exactly ZERO while the naive heuristic
- * promises 1/16 — the control where the heuristic becomes misleading.
+ * On this toy cipher the three disagree in ways the exhibit makes visible.
+ * For the aligned design every path through the DDT row leaves the same value
+ * of <λin, Δ'>, so the off-path assumption fails *upward*. The path-aware
+ * estimate is 9/32; the real full-codebook measurement is either 1/4 or 5/16,
+ * depending on the key. For the cancelled design, paths whose right-hand side
+ * differs from the designated path contribute with the opposite sign. Their
+ * weighted contributions cancel exactly: the path-aware estimate and the real
+ * measurement are zero although the naive heuristic promises 1/16.
  *
- * The lesson runs on the 3-round reduced cipher (the same option the cockpit
- * offers): with an 8-bit block only 128 distinct pairs with a fixed difference
- * exist, and on 4 rounds no composition in this module's search space produces
- * a bias measurable within that budget. That is stated, not hidden.
+ * The lesson runs on one fixed 3-round construction (the same reduced-round
+ * option the cockpit offers). An 8-bit block has only 128 distinct pairs with
+ * a fixed nonzero difference. This exhibit makes no claim that its selected
+ * masks are optimal for four rounds or that it attacks the full cipher.
  *
  * NOT PRODUCTION CRYPTOGRAPHY. The cipher is broken by definition; the point
  * is to watch the composed statistic, its assumptions, and their failure.
@@ -85,7 +87,7 @@ export const CANCELLED: DlDesign = {
   lambdaIn: 0x04,
   lambdaOut: 0xc0,
   label: 'Cancelled composition (control)',
-  note: 'λin = 0x04 reads a bit the DDT row moves both ways — the paths cancel and the heuristic misleads.',
+  note: 'λin = 0x04 reads a bit the DDT row moves both ways — signed path contributions cancel and repair the naive prediction.',
 };
 
 export const DL_BUDGETS: readonly number[] = [16, 32, 64, 96, 128];
@@ -190,14 +192,24 @@ export function naiveBias(p: number, suffixCorr: number): number {
 }
 
 /**
- * Exact pair bias of the suffix for one fixed joining difference: over all
- * 256 uniform values of the joining state, how often the pair relation holds,
- * minus one half. A *measurement* of the cipher, not a formula. Key-dependent
+ * Exact pair bias of the suffix for one fixed joining difference, evaluated
+ * against the ONE right-hand side used by the attack. Over all 256 uniform
+ * values of the joining state, count how often that fixed relation holds and
+ * subtract one half. A path whose own <λin, Δ'> differs from `rhs` therefore
+ * contributes with the opposite sign. Using each path's own right-hand side
+ * would silently change the attack equation from row to row.
+ *
+ * This is a *measurement* of the cipher, not a formula. Key-dependent
  * constants cancel: K2 translates both texts of a pair together and K3 is
  * XORed into both peeled masks, so the pair statistic is untouched by both.
  */
-export function pathPairBias(sbox: Sbox, design: DlDesign, joiningDiff: number): number {
-  const rhs = dot(design.lambdaIn, joiningDiff);
+export function pathPairBias(
+  sbox: Sbox,
+  design: DlDesign,
+  joiningDiff: number,
+  rhs: number,
+): number {
+  if (rhs !== 0 && rhs !== 1) throw new RangeError(`pair-relation RHS must be one bit, got ${rhs}`);
   let agree = 0;
   for (let u = 0; u < 256; u++) {
     const v = suffixMap(sbox, u);
@@ -220,11 +232,28 @@ function suffixMap(sbox: Sbox, u: number): number {
  * uniform within each path — the assumption the control breaks.
  */
 export function pathAwareBias(sbox: Sbox, design: DlDesign, dX: number): number {
+  const rhs = designatedPath(sbox, design, dX).lambdaInDot;
   let total = 0;
   for (const path of prefixPaths(sbox, design, dX)) {
-    total += path.weight * pathPairBias(sbox, design, path.joiningDiff);
+    total += path.weight * pathPairBias(sbox, design, path.joiningDiff, rhs);
   }
   return total;
+}
+
+/** Which last-round key bits this suffix statistic can actually observe. */
+export function subkeyTargetMask(design: DlDesign): number {
+  const high = (design.lambdaOut & 0xf0) !== 0;
+  const low = (design.lambdaOut & 0x0f) !== 0;
+  if (!high && !low) throw new RangeError('the suffix output mask must be nonzero');
+  return (high ? 0xf0 : 0) | (low ? 0x0f : 0);
+}
+
+/** One canonical guess for each distinguishable last-round-key hypothesis. */
+export function subkeyCandidates(design: DlDesign): number[] {
+  const mask = subkeyTargetMask(design);
+  if (mask === 0xff) return Array.from({ length: 256 }, (_, guess) => guess);
+  if (mask === 0xf0) return Array.from({ length: 16 }, (_, guess) => guess << 4);
+  return Array.from({ length: 16 }, (_, guess) => guess);
 }
 
 export interface DlAttackResult {
@@ -236,21 +265,27 @@ export interface DlAttackResult {
   readonly holdoutPairs: number;
   /** Per-guess agreement counts over the holdout pairs. */
   readonly holdoutCounts: readonly number[];
+  /** Canonical hypotheses the selected output mask can distinguish. */
+  readonly candidates: readonly number[];
+  /** Bits of the final whitening byte visible to the selected output mask. */
+  readonly targetMask: number;
   /** The guess with the largest |count − N/2|; ties broken by lowest value. */
   readonly winner: number;
   /** How many OTHER guesses share the winner's excess (a tie at the top). */
   readonly winnerTies: number;
   /** The byte of the final whitening key the ranking is after. */
   readonly trueSubkey: number;
+  /** The visible portion of `trueSubkey`, comparable to `winner`. */
+  readonly trueTarget: number;
   /** (count − N/2) / N for the true subkey, over the attack pairs. */
   readonly measuredBias: number;
   /** Same, over the holdout, for the winning guess. */
   readonly winnerHoldoutBias: number;
-  /** The largest holdout bias among the wrong guesses. */
+  /** Signed bias of the wrong guess with the largest absolute holdout bias. */
   readonly maxWrongHoldoutBias: number;
   /** 'recovered' | 'tied' | 'failed', judged against the true subkey. */
   readonly verdict: 'recovered' | 'tied' | 'failed';
-  /** True when the winner's holdout bias is positive and beats every wrong guess. */
+  /** True when the winner's absolute holdout bias beats every wrong guess. */
   readonly holdoutConfirms: boolean;
 }
 
@@ -259,9 +294,11 @@ export interface DlAttackResult {
  *
  * The attacker model: chosen-plaintext access (2·budget oracle queries), the
  * joining state never observed, the true subkey never read until the verdict.
- * Each of the 256 candidate values of the final whitening key byte peels the
- * last round for both texts of every pair; the guess whose peeled pair
- * relation agrees most often (in either direction) is the winner.
+ * Each distinguishable candidate value peels the last round for both texts of
+ * every pair; the guess whose peeled pair relation deviates farthest from a
+ * coin flip (in either direction) is the winner. A mask spanning both nibbles
+ * ranks 256 byte values. A one-nibble mask ranks only 16 nibble values: the
+ * unobserved nibble is not falsely presented as recovered key material.
  */
 export function runDlAttack(options: {
   readonly sbox: Sbox;
@@ -280,13 +317,16 @@ export function runDlAttack(options: {
 
   const counts = new Array<number>(256).fill(0);
   const holdoutCounts = new Array<number>(256).fill(0);
+  const candidates = subkeyCandidates(design);
+  const targetMask = subkeyTargetMask(design);
   const trueSubkey = key.subkeys[DL_ROUNDS] & 0xff;
+  const trueTarget = trueSubkey & targetMask;
 
   const tally = (into: number[], list: readonly [number, number][]): void => {
     for (const [x, other] of list) {
       const c1 = encrypt(x, key, sbox, DL_ROUNDS);
       const c2 = encrypt(other, key, sbox, DL_ROUNDS);
-      for (let guess = 0; guess < 256; guess++) {
+      for (const guess of candidates) {
         const v1 = sbox.inverse[(c1 ^ guess) >> 4] << 4 | sbox.inverse[(c1 ^ guess) & 0xf];
         const v2 = sbox.inverse[(c2 ^ guess) >> 4] << 4 | sbox.inverse[(c2 ^ guess) & 0xf];
         if ((dot(design.lambdaOut, v1) ^ dot(design.lambdaOut, v2) ^ rhs) === 0) into[guess] += 1;
@@ -297,40 +337,48 @@ export function runDlAttack(options: {
   tally(holdoutCounts, holdout);
 
   const excess = (g: number): number => Math.abs(counts[g] - attack.length / 2);
-  let winner = 0;
-  for (let g = 1; g < 256; g++) if (excess(g) > excess(winner)) winner = g;
+  let winner = candidates[0];
+  for (const g of candidates.slice(1)) if (excess(g) > excess(winner)) winner = g;
   let winnerTies = 0;
-  for (let g = 0; g < 256; g++) if (g !== winner && excess(g) === excess(winner)) winnerTies += 1;
+  for (const g of candidates) if (g !== winner && excess(g) === excess(winner)) winnerTies += 1;
 
   const holdoutBias = (g: number): number =>
     holdout.length === 0 ? 0 : (holdoutCounts[g] - holdout.length / 2) / holdout.length;
-  let maxWrongHoldoutBias = -1;
-  for (let g = 0; g < 256; g++) if (g !== winner) maxWrongHoldoutBias = Math.max(maxWrongHoldoutBias, holdoutBias(g));
+  let maxWrongHoldoutBias = 0;
+  for (const g of candidates) {
+    if (g === winner) continue;
+    const bias = holdoutBias(g);
+    if (Math.abs(bias) > Math.abs(maxWrongHoldoutBias)) maxWrongHoldoutBias = bias;
+  }
   const winnerHoldoutBias = holdoutBias(winner);
 
+  const trueAtTop = excess(trueTarget) === excess(winner);
   const verdict: DlAttackResult['verdict'] =
-    winner === trueSubkey && winnerTies === 0 ? 'recovered' : winner === trueSubkey ? 'tied' : 'failed';
+    winner === trueTarget && winnerTies === 0 ? 'recovered' : trueAtTop ? 'tied' : 'failed';
 
   return {
     attackPairs: attack.length,
     counts,
     holdoutPairs: holdout.length,
     holdoutCounts,
+    candidates,
+    targetMask,
     winner,
     winnerTies,
     trueSubkey,
-    measuredBias: (counts[trueSubkey] - attack.length / 2) / attack.length,
+    trueTarget,
+    measuredBias: (counts[trueTarget] - attack.length / 2) / attack.length,
     winnerHoldoutBias,
     maxWrongHoldoutBias,
     verdict,
-    holdoutConfirms: holdout.length > 0 && winnerHoldoutBias > 0 && winnerHoldoutBias > maxWrongHoldoutBias,
+    holdoutConfirms: holdout.length > 0 && Math.abs(winnerHoldoutBias) > Math.abs(maxWrongHoldoutBias),
   };
 }
 
 export interface DlSuccessPoint {
   readonly budget: number;
   readonly trials: number;
-  /** Keys where the winner WAS the true subkey (ties included). */
+  /** Keys where the true target was in the top absolute-deviation class. */
   readonly wins: number;
   /** Of those, how many were ties at the top rather than outright wins. */
   readonly tiedWins: number;
@@ -346,7 +394,8 @@ export interface DlMeasureOptions {
    * anywhere. The odd stride matters: success on this cipher is not uniform
    * over keys — it clusters on key-schedule patterns — so the first 512 keys
    * measured 100% at 64 pairs while the whole 16-bit space measures 84%. The
-   * stride walks every residue class fairly instead of sampling one pocket.
+   * stride disperses this bounded deterministic sample instead of staying in
+   * one consecutive key-schedule pocket. It is not a random population sample.
    */
   readonly keyCount: number;
   readonly onProgress?: (completed: number, total: number) => void;
@@ -355,7 +404,7 @@ export interface DlMeasureOptions {
 /**
  * Measured success rate of the ranking across keys, per budget — the honest
  * counterweight to every heuristic number above. Fully deterministic: the
- * pairs are fixed by the budget, the keys are the first keyCount master keys.
+ * pairs are fixed by the budget, and master key i is (i·129) mod 2¹⁶.
  */
 export function measureDlSuccessRate(options: DlMeasureOptions): DlSuccessPoint[] {
   const { sbox, design, budgets, keyCount, onProgress } = options;

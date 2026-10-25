@@ -19,7 +19,7 @@ import {
   suffixCorrelation,
 } from './difflin.js';
 import { generateKey, encrypt } from './spn.js';
-import { getSbox } from './sbox.js';
+import { dot, getSbox } from './sbox.js';
 
 const heys = getSbox('heys');
 
@@ -139,15 +139,19 @@ describe('the suffix and the heuristic stack', () => {
     // positive — the pair relation holds on ALL paths, not just the
     // designated one, which is exactly the assumption the naive form makes.
     const aligned = prefixPaths(heys, ALIGNED, DL_DX);
-    expect(aligned.map((p) => pathPairBias(heys, ALIGNED, p.joiningDiff))).toEqual([0.25, 0.5, 0.25, 0.25, 0.25]);
-    // Control: three paths carry no pair bias at all, two carry +1/2.
+    const alignedRhs = designatedPath(heys, ALIGNED, DL_DX).lambdaInDot;
+    expect(aligned.map((p) => pathPairBias(heys, ALIGNED, p.joiningDiff, alignedRhs))).toEqual([0.25, 0.5, 0.25, 0.25, 0.25]);
+    // The attack fixes one RHS. In the control, the 0x05 and 0x0d paths
+    // carry equal and opposite bias rather than each choosing its own RHS.
     const control = prefixPaths(heys, CANCELLED, DL_DX);
-    expect(control.map((p) => pathPairBias(heys, CANCELLED, p.joiningDiff))).toEqual([0, 0.5, 0, 0.5, 0]);
+    const controlRhs = designatedPath(heys, CANCELLED, DL_DX).lambdaInDot;
+    expect(control.map((p) => pathPairBias(heys, CANCELLED, p.joiningDiff, controlRhs))).toEqual([0, 0.5, 0, -0.5, 0]);
+    expect(() => pathPairBias(heys, CANCELLED, control[0].joiningDiff, 2)).toThrow(RangeError);
   });
 
-  it('pins the path-aware estimates: 9/32 aligned, 1/8 cancelled', () => {
+  it('pins the path-aware estimates: 9/32 aligned, zero after signed control paths cancel', () => {
     expect(pathAwareBias(heys, ALIGNED, DL_DX)).toBeCloseTo(9 / 32, 12);
-    expect(pathAwareBias(heys, CANCELLED, DL_DX)).toBeCloseTo(1 / 8, 12);
+    expect(pathAwareBias(heys, CANCELLED, DL_DX)).toBe(0);
   });
 });
 
@@ -169,21 +173,56 @@ describe('the composed attack on the real cipher', () => {
     expect(result.attackPairs).toBe(64);
   });
 
-  it('holds the full-codebook pair statistic at exactly 5/16, independent of the key', () => {
-    for (const masterKey of [14996, 0x1234, 0]) {
+  it('shows the full-codebook pair statistic is key-dependent, not a fixed 5/16', () => {
+    for (const [masterKey, agreements, bias] of [
+      [14996, 104, 5 / 16],
+      [0x4000, 96, 1 / 4],
+    ] as const) {
       const result = runDlAttack({
         sbox: heys,
         key: generateKey(masterKey),
         design: ALIGNED,
         budget: 128,
       });
-      // 104 of 128 pairs agree under the true subkey for every key tried.
-      expect(result.counts[result.trueSubkey]).toBe(104);
-      expect(result.measuredBias).toBeCloseTo(5 / 16, 12);
+      expect(result.counts[result.trueTarget]).toBe(agreements);
+      expect(result.measuredBias).toBeCloseTo(bias, 12);
       expect(result.verdict).toBe('recovered');
       expect(result.winner).toBe(result.trueSubkey);
       expect(result.winnerTies).toBe(0);
     }
+  });
+
+  it('exhaustively bounds the full-codebook biases across all 65,536 master keys', { timeout: 30_000 }, () => {
+    const pairs = chosenPairs(DL_DX, 128);
+    const alignedRhs = designatedPath(heys, ALIGNED, DL_DX).lambdaInDot;
+    const controlRhs = designatedPath(heys, CANCELLED, DL_DX).lambdaInDot;
+    const alignedHistogram = new Map<number, number>();
+    let nonzeroControls = 0;
+
+    // Independent true-key count: this deliberately does not call
+    // runDlAttack(), its ranking, or its measuredBias field.
+    for (let masterKey = 0; masterKey <= 0xffff; masterKey++) {
+      const key = generateKey(masterKey);
+      const trueSubkey = key.subkeys[DL_ROUNDS];
+      let alignedAgreements = 0;
+      let controlAgreements = 0;
+      for (const [x, other] of pairs) {
+        const c1 = encrypt(x, key, heys, DL_ROUNDS);
+        const c2 = encrypt(other, key, heys, DL_ROUNDS);
+        const v1 = (heys.inverse[(c1 ^ trueSubkey) >> 4] << 4) | heys.inverse[(c1 ^ trueSubkey) & 0xf];
+        const v2 = (heys.inverse[(c2 ^ trueSubkey) >> 4] << 4) | heys.inverse[(c2 ^ trueSubkey) & 0xf];
+        if ((dot(ALIGNED.lambdaOut, v1) ^ dot(ALIGNED.lambdaOut, v2) ^ alignedRhs) === 0) alignedAgreements++;
+        if ((dot(CANCELLED.lambdaOut, v1) ^ dot(CANCELLED.lambdaOut, v2) ^ controlRhs) === 0) controlAgreements++;
+      }
+      alignedHistogram.set(alignedAgreements, (alignedHistogram.get(alignedAgreements) ?? 0) + 1);
+      if (controlAgreements !== 64) nonzeroControls++;
+    }
+
+    expect([...alignedHistogram.entries()].sort((a, b) => a[0] - b[0])).toEqual([
+      [96, 32_768],
+      [104, 32_768],
+    ]);
+    expect(nonzeroControls).toBe(0);
   });
 
   it('verifies the winner on the held-back pairs at the default budget', () => {
@@ -210,10 +249,23 @@ describe('the composed attack on the real cipher', () => {
     expect(result.winnerTies).toBeGreaterThan(0);
   });
 
+  it('counts the true key in a top tie even when numeric tie-breaking lists another guess first', () => {
+    const result = runDlAttack({ sbox: heys, key: generateKey(5418), design: ALIGNED, budget: 16 });
+    expect(result.winner).toBe(0x42);
+    expect(result.trueTarget).toBe(0x52);
+    expect(result.winnerTies).toBe(2);
+    expect(result.verdict).toBe('tied');
+  });
+
   it('shows the control measuring EXACTLY zero while the heuristic promised signal', () => {
     const result = runDlAttack({ sbox: heys, key: pinnedKey, design: CANCELLED, budget: 128 });
-    // Naive heuristic 1/16, path-aware 1/8 — and the cipher says: nothing.
-    expect(result.counts[result.trueSubkey]).toBe(64);
+    // Naive heuristic 1/16, corrected signed path sum zero — and the real
+    // cipher agrees. The 0xc0 mask sees only the high key nibble, so only 16
+    // canonical hypotheses are ranked and no low-nibble recovery is claimed.
+    expect(result.candidates).toEqual(Array.from({ length: 16 }, (_, guess) => guess << 4));
+    expect(result.targetMask).toBe(0xf0);
+    expect(result.trueTarget).toBe(0xa0);
+    expect(result.counts[result.trueTarget]).toBe(64);
     expect(result.measuredBias).toBe(0);
     expect(result.verdict).toBe('failed');
     expect(result.winner).not.toBe(result.trueSubkey);
@@ -238,30 +290,31 @@ describe('the measured success rate across keys', () => {
     });
     expect(points.map((p) => p.budget)).toEqual([16, 32, 64, 96, 128]);
     // Reproduced by running the same deterministic measurement offline, twice.
-    // The keys are 0, 129, 258, … — the odd stride that walks the 16-bit space
-    // fairly. (The first 512 consecutive keys measure 100% at 64 pairs; the
-    // whole space measures 84%. A stride-1 sample would have lied.)
-    expect(points.map((p) => p.wins)).toEqual([110, 286, 427, 511, 512]);
-    expect(points.map((p) => p.tiedWins)).toEqual([17, 36, 17, 0, 0]);
+    // The keys are 0, 129, 258, … — an odd stride that disperses this bounded
+    // deterministic sample instead of staying inside a consecutive
+    // key-schedule pocket. It is reproducible, not a random population claim.
+    expect(points.map((p) => p.wins)).toEqual([160, 342, 462, 511, 512]);
+    expect(points.map((p) => p.tiedWins)).toEqual([67, 92, 52, 0, 0]);
     expect(points.map((p) => p.rate)).toEqual([
-      110 / 512,
-      286 / 512,
-      427 / 512,
+      160 / 512,
+      342 / 512,
+      462 / 512,
       511 / 512,
       1,
     ]);
   });
 
-  it('pins the control flatlining at chance for budgets 32 and up', () => {
+  it('pins the signal-free control over the 16 high-nibble hypotheses', () => {
     const points = measureDlSuccessRate({
       sbox: heys,
       design: CANCELLED,
       budgets: DL_BUDGETS,
       keyCount: 512,
     });
-    // 7 ties at 16 pairs, then nothing at all — chance for 256 candidates.
-    expect(points.map((p) => p.wins)).toEqual([7, 0, 0, 0, 0]);
-    expect(points.map((p) => p.tiedWins)).toEqual([7, 0, 0, 0, 0]);
+    // At small budgets the true nibble can sit in a chance tie. Once the full
+    // zero-bias population is exposed, it never wins the noise ranking.
+    expect(points.map((p) => p.wins)).toEqual([100, 70, 10, 0, 0]);
+    expect(points.map((p) => p.tiedWins)).toEqual([96, 68, 10, 0, 0]);
   });
 
   it('reports progress as it works', () => {

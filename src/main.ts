@@ -872,9 +872,9 @@ $('measure-cancel').addEventListener('click', () => {
 /* ── Differential–linear composition (exhibit 9) ────────────────────── */
 
 // The composition is a fixed lesson on one explicitly defined cipher: the
-// shared toy SPN in its 3-round form with the Heys S-box. Its masks were
-// found by exhaustive search for THIS S-box, so the cockpit's S-box switch
-// deliberately does not reach in here — the panel says so in plain text.
+// shared toy SPN in its 3-round form with the Heys S-box. The cockpit's S-box
+// and round switches deliberately do not reach in here; the learner-facing
+// boundary says exactly what this selected construction does and does not show.
 const DL_SBOX = getSbox('heys');
 const DL_MEASURE_KEYS = 512;
 
@@ -882,7 +882,8 @@ const dlView: {
   result: DlAttackResult | null;
   stale: boolean;
   worker: Worker | null;
-} = { result: null, stale: false, worker: null };
+  measureRevision: number;
+} = { result: null, stale: false, worker: null, measureRevision: 0 };
 
 function dlDesign(): DlDesign {
   return experiment.dlDesign === 'aligned' ? ALIGNED : CANCELLED;
@@ -890,6 +891,10 @@ function dlDesign(): DlDesign {
 
 function invalidateDl(): void {
   if (dlView.result !== null) dlView.stale = true;
+  dlView.measureRevision += 1;
+  stopDlMeasurement();
+  $('dl-measure-result').replaceChildren();
+  $('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';
   renderDlPanel();
 }
 
@@ -918,7 +923,7 @@ function renderDlPanel(): void {
       {
         value: 'cancelled',
         label: 'Cancelled — the control',
-        hint: 'λin = 0x04 · λout = 0xC0 · heuristic lies',
+        hint: 'λin = 0x04 · λout = 0xC0 · 16 high-nibble hypotheses',
       },
     ],
     experiment.dlDesign,
@@ -962,7 +967,14 @@ function renderDlPanel(): void {
     naiveBias: naiveBias(designatedPath(DL_SBOX, design, DL_DX).weight, suffixCorrelation(DL_SBOX, design)),
     stale: dlView.stale,
   });
-  renderDlRanking($<HTMLTableElement>('dl-ranking'), shown, shown !== null);
+  const rankingWrap = $('dl-ranking').closest<HTMLElement>('.ranking-wrap');
+  rankingWrap?.setAttribute(
+    'aria-label',
+    design.name === 'aligned'
+      ? 'The 256 last-round byte hypotheses, ranked by absolute bias'
+      : 'The 16 observable last-round high-nibble hypotheses, ranked by absolute bias',
+  );
+  renderDlRanking($<HTMLTableElement>('dl-ranking'), shown, shown !== null, design);
   renderDlHoldout($('dl-holdout'), shown, dlView.result !== null);
   renderDlSetup($('dl-setup'), { sbox: DL_SBOX, design });
   renderDlPaths($('dl-paths'), { sbox: DL_SBOX, design });
@@ -978,8 +990,10 @@ function stopDlMeasurement(): void {
 }
 
 function startDlMeasurement(): void {
+  const revision = ++dlView.measureRevision;
   $<HTMLButtonElement>('dl-measure-run').disabled = true;
   $('dl-measure-cancel').hidden = false;
+  $('dl-measure-result').replaceChildren();
   const design = dlDesign();
   const request: DlMeasureRequest = {
     sboxName: 'heys',
@@ -989,6 +1003,7 @@ function startDlMeasurement(): void {
   };
   const total = DL_BUDGETS.length * DL_MEASURE_KEYS;
   const show = (points: readonly import('./crypto/difflin.js').DlSuccessPoint[]): void => {
+    if (revision !== dlView.measureRevision) return;
     renderDlCurve($('dl-measure-result'), points, design);
     $('dl-measure-status').textContent = `${total.toLocaleString()} complete rankings run — deterministic, the same result every time.`;
     stopDlMeasurement();
@@ -1008,6 +1023,7 @@ function startDlMeasurement(): void {
     dlView.worker = worker;
     $('dl-measure-status').textContent = `Measuring… 0 of ${total.toLocaleString()} rankings`;
     worker.onmessage = (event: MessageEvent<DlMeasureMessage>) => {
+      if (revision !== dlView.measureRevision) return;
       const message = event.data;
       if (message.kind === 'progress') {
         $('dl-measure-status').textContent = `Measuring… ${message.completed.toLocaleString()} of ${total.toLocaleString()} rankings`;
@@ -1019,6 +1035,7 @@ function startDlMeasurement(): void {
       }
     };
     worker.onerror = () => {
+      if (revision !== dlView.measureRevision) return;
       // No module worker available: do it on the main thread rather than fail.
       stopDlMeasurement();
       fallback();
@@ -1032,6 +1049,7 @@ function startDlMeasurement(): void {
 $('dl-run').addEventListener('click', runDlComposition);
 $('dl-measure-run').addEventListener('click', startDlMeasurement);
 $('dl-measure-cancel').addEventListener('click', () => {
+  dlView.measureRevision += 1;
   stopDlMeasurement();
   $('dl-measure-status').textContent = 'Measurement cancelled — nothing partial is reported.';
 });
