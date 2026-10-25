@@ -5,7 +5,7 @@ import { boot, driveAllStates, NARROW, reportCollected, watchPageErrors } from '
  * WCAG A/AA regression gate.
  *
  * The lab is driven along everything it teaches, and every state is scanned:
- * the arrival state, with sixteen empty counters and five disclosures shut; the
+ * the arrival state, with sixteen empty counters and seven disclosures shut; the
  * skip link focused by a real Tab press; the key revealed and hidden again; the
  * attack at the shipped configuration; the stale state a changed control leaves
  * behind; all four scenario presets, including the four-round codebook run that
@@ -15,7 +15,7 @@ import { boot, driveAllStates, NARROW, reportCollected, watchPageErrors } from '
  * and at 4096; both ends of the plaintext slider; three shapes of LAT cell; the
  * piling-up trail stepped to the end and reset; the measured success curve and
  * its cancel path; the share link; and the finished page with everything open.
- * Each of those is scanned in {dark, light} × {1280px, 380px}.
+ * Each of those is scanned in the dark theme at 1280px and 380px.
  *
  * Clipboard permission is granted because "Copy experiment link" calls
  * `navigator.clipboard.writeText` inside a try/catch that writes a DIFFERENT

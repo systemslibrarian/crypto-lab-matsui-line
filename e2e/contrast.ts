@@ -395,7 +395,7 @@ export async function auditContrast(page: Page, within = 'body *'): Promise<Cont
     /**
      * Style and geometry are memoised per element for one pass.
      *
-     * A driven pass here walks eight sections and — the expensive part — the
+     * A driven pass here walks ten sections and — the expensive part — the
      * 16x16 linear approximation table, which is 256 `<button>` cells, beside a
      * sixteen-row counter ranking that renders a bar and three numbers per row.
      * That is close to a thousand sibling elements all re-walking the same
@@ -671,7 +671,7 @@ export async function auditContrast(page: Page, within = 'body *'): Promise<Cont
      * miss the `background` shorthand), so `document.documentElement` really
      * does paint `--bg`. That makes the fallback below dormant rather than
      * unnecessary, and it is worth keeping for the reason it was written: this
-     * page runs eight sections deep, so the day the declaration moves from
+     * page runs ten sections deep, so the day the declaration moves from
      * `html` to `body` — a change nobody would think of as risky — every
      * element below the first screen would otherwise report against a white
      * page that does not exist, in a theme whose canvas is `#0c0e1a`.

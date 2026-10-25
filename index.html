@@ -563,9 +563,88 @@
         </div>
       </section>
 
-      <!-- ══ 9. LIMITS ════════════════════════════════════════════════ -->
+      <!-- ══ 9. DIFFERENTIAL–LINEAR COMPOSITION ═══════════════════════ -->
+      <section class="panel" aria-labelledby="difflin-h" id="difflin">
+        <div class="panel-head">
+          <h2 id="difflin-h"><span class="step-num">9</span> Weld the two attacks together</h2>
+          <p class="panel-sub">
+            Differential cryptanalysis drives the first round with a chosen difference; linear cryptanalysis reads the
+            second with a biased parity. Langford and Hellman (1994) joined exactly such pieces into one statistic on
+            DES. Here the join happens at an explicit state — the input to round 2 — and every number is measured on
+            the real toy cipher. This is a fixed 3-round Heys-S-box lesson; the cockpit controls above do not alter it.
+          </p>
+        </div>
+
+        <div class="dl-grid">
+          <div class="dl-controls">
+            <fieldset class="seg-group">
+              <legend>Composition</legend>
+              <div class="seg seg-stack" id="seg-dl" role="group" aria-label="Which composition to run"></div>
+              <p class="seg-note" id="dl-note"></p>
+            </fieldset>
+            <fieldset class="seg-group">
+              <legend>Chosen-pair budget</legend>
+              <div class="seg" id="seg-dlb" role="group" aria-label="Chosen pairs to spend on the ranking"></div>
+              <p class="seg-note" id="dlb-note"></p>
+            </fieldset>
+            <div class="run-row">
+              <button type="button" class="btn btn-primary" id="dl-run">Run the composition</button>
+              <div class="run-status" id="dl-status" role="status" aria-live="polite"></div>
+            </div>
+          </div>
+
+          <div class="dl-result">
+            <div id="dl-verdict" class="verdict" role="status" aria-live="polite"></div>
+            <div class="ranking-wrap" role="region" aria-label="Distinguishable subkey hypotheses ranked by absolute bias" tabindex="0">
+              <table class="ranking" id="dl-ranking">
+                <caption class="sr-only">
+                  Distinguishable values of the last whitening key material, ranked by how far the composed pair
+                  statistic sits from a coin flip.
+                </caption>
+              </table>
+            </div>
+            <div id="dl-holdout" class="dl-holdout"></div>
+          </div>
+        </div>
+
+        <div id="dl-setup"></div>
+
+        <details class="deep">
+          <summary>The five paths of the chosen difference — and what the suffix mask sees on each</summary>
+          <div id="dl-paths"></div>
+        </details>
+
+        <details class="deep">
+          <summary>The heuristic, its assumptions, and where the predictions diverge</summary>
+          <div id="dl-heuristics"></div>
+        </details>
+
+        <div class="dl-measure">
+          <div class="run-row">
+            <button type="button" class="btn" id="dl-measure-run">Measure the real success rate</button>
+            <button type="button" class="btn btn-ghost" id="dl-measure-cancel" hidden>Cancel</button>
+            <div class="run-status" id="dl-measure-status" role="status" aria-live="polite"></div>
+          </div>
+          <div id="dl-measure-result"></div>
+        </div>
+
+        <div class="callout">
+          <p>
+            <strong>Why this is bounded to three rounds.</strong> An 8-bit block admits just 128 distinct pairs with a
+            fixed nonzero difference. This selected construction therefore runs on the same 3-round reduced form the
+            cockpit offers. It does not claim these masks are optimal for four rounds, and it does not demonstrate an
+            attack on the full toy cipher. The base composition follows Langford and Hellman's
+            <a href="https://doi.org/10.1007/3-540-48658-5_3"><em>Differential–Linear Cryptanalysis</em></a>
+            (CRYPTO '94); its p-weighted, off-path-random enhancement follows Biham, Dunkelman and Keller's
+            <a href="https://doi.org/10.1007/3-540-36178-2_16"><em>Enhancing Differential-Linear Cryptanalysis</em></a>
+            (ASIACRYPT 2002). The scale and cipher here are explicitly pedagogical.
+          </p>
+        </div>
+      </section>
+
+      <!-- ══ 10. LIMITS ════════════════════════════════════════════════ -->
       <section class="panel honesty" aria-labelledby="honesty-h" id="honesty">
-        <h2 id="honesty-h"><span class="step-num">9</span> What this is, and what it does not prove</h2>
+        <h2 id="honesty-h"><span class="step-num">10</span> What this is, and what it does not prove</h2>
         <div class="honesty-grid">
           <div>
             <h3>Real</h3>
@@ -596,6 +675,12 @@
               <li>
                 The new two-mask and structural-zero panel is a bounded toy observation, not a full
                 multidimensional or zero-correlation key-recovery attack, and nothing here attacks real DES.
+              </li>
+              <li>
+                The differential–linear composition runs on the 3-round reduced cipher, and its heuristic numbers
+                are toy-cipher facts: on this S-box the off-path assumption fails in both directions the exhibit
+                shows. It is not a reproduction of Langford and Hellman's DES attack, and recovering the final
+                whitening byte is not a full key recovery.
               </li>
             </ul>
           </div>
