@@ -327,7 +327,10 @@ test('changing composition settings retires the previous ranking', async ({ page
 
   await page.locator('#dl-run').click();
   await expect(page.locator('#dl-verdict')).not.toHaveClass('verdict is-stale');
-  await expect(page.locator('#dl-status')).toContainText('Counted 16 chosen pairs');
+  const rerunStatus = page.locator('#dl-status');
+  await expect(rerunStatus).toContainText('Ranking: 16 chosen pairs / 32 oracle queries');
+  await expect(rerunStatus).toContainText('Verification: 112 fresh pairs / 224 more queries');
+  await expect(rerunStatus).toContainText('Total: 256 oracle queries');
 });
 
 test('composition controls update the URL and survive reload', async ({ page }) => {

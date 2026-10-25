@@ -999,7 +999,9 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   // Like the four-round preset above, the class is asserted as the set of
   // honest outcomes; the pinned segment at the end proves a specific one.
   await page.click('#dl-run');
-  await expect(page.locator('#dl-status')).toContainText('Counted 96 chosen pairs');
+  await expect(page.locator('#dl-status')).toContainText('Ranking: 96 chosen pairs / 192 oracle queries');
+  await expect(page.locator('#dl-status')).toContainText('Verification: 32 fresh pairs / 64 more queries');
+  await expect(page.locator('#dl-status')).toContainText('Total: 256 oracle queries');
   await expect(page.locator('#dl-verdict')).toHaveClass(/verdict is-(broken|partial|held)/);
   await expect(page.locator('#dl-holdout')).toContainText('fresh pairs');
   await scanAt('the composition run at the shipped configuration');
@@ -1026,7 +1028,9 @@ export async function driveAllStates(page: Page, theme: string): Promise<void> {
   // A budget of 128 spends every pair and disables the holdout honestly.
   await page.click('label[for="dlb-128"]');
   await page.click('#dl-run');
-  await expect(page.locator('#dl-status')).toContainText('Counted 128 chosen pairs');
+  await expect(page.locator('#dl-status')).toContainText('Ranking: 128 chosen pairs / 256 oracle queries');
+  await expect(page.locator('#dl-status')).toContainText('Verification: 0 fresh pairs / 0 more queries');
+  await expect(page.locator('#dl-status')).toContainText('Total: 256 oracle queries');
   await expect(page.locator('#dl-holdout')).toContainText('nothing held back');
   await scanAt('the full pair budget, no holdout left');
 
