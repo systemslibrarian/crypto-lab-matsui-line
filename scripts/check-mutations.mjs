@@ -146,6 +146,11 @@ const cases = [
     patches: [
       patch(
         'src/crypto/difflin.ts',
+        '  const rhs = designatedPath(sbox, design, dX).lambdaInDot;\n',
+        '  // Mutant incorrectly lets each path choose its own right-hand side below.\n',
+      ),
+      patch(
+        'src/crypto/difflin.ts',
         'total += path.weight * pathPairBias(sbox, design, path.joiningDiff, rhs);',
         'total += path.weight * pathPairBias(sbox, design, path.joiningDiff, path.lambdaInDot);',
       ),
