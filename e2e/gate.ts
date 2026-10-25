@@ -52,7 +52,8 @@ export const NARROW = { width: 380, height: 800 };
  *     was worse: it drove the page at 380px, scanned, then toggled the theme and
  *     scanned again WITHOUT re-driving, so the light-theme narrow scan measured
  *     whatever the dark drive happened to leave behind. This drive scans after
- *     every step, in {dark, light} × {1280, 380}.
+ *     every step at each configured viewport; the current gate invokes it in
+ *     the dark theme at 1280px and 380px.
  *
  *  4. `violations` IS NOT THE WHOLE ORACLE. See `scan`. On this page the gap is
  *     concrete: `.cockpit` — the box around the attack, its sixteen counters and

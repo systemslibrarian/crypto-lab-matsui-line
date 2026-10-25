@@ -633,9 +633,11 @@
             <strong>Why this is bounded to three rounds.</strong> An 8-bit block admits just 128 distinct pairs with a
             fixed nonzero difference. This selected construction therefore runs on the same 3-round reduced form the
             cockpit offers. It does not claim these masks are optimal for four rounds, and it does not demonstrate an
-            attack on the full toy cipher. The construction follows Langford and Hellman's
+            attack on the full toy cipher. The base composition follows Langford and Hellman's
             <a href="https://doi.org/10.1007/3-540-48658-5_3"><em>Differential–Linear Cryptanalysis</em></a>
-            (CRYPTO '94); the scale and cipher here are explicitly pedagogical.
+            (CRYPTO '94); its p-weighted, off-path-random enhancement follows Biham, Dunkelman and Keller's
+            <a href="https://doi.org/10.1007/3-540-36178-2_16"><em>Enhancing Differential-Linear Cryptanalysis</em></a>
+            (ASIACRYPT 2002). The scale and cipher here are explicitly pedagogical.
           </p>
         </div>
       </section>

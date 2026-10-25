@@ -2,19 +2,18 @@
  * Differential–linear composition on the shared toy SPN.
  *
  * Langford and Hellman's CRYPTO '94 attack joins a differential prefix to a
- * linear suffix: split the cipher E = E1 ∘ E0 at an explicit intermediate
- * state, drive E0 with a chosen plaintext difference ΔX whose differential
- * ΔX → ΔY holds with probability p, and read E1 with a linear approximation
- * <λin, u> = <λout, v> ⊕ b whose bias is ε. For a PAIR of texts that both sit
- * on the approximation, the two approximation constants cancel, and the pair
- * relation
+ * linear suffix. In their base construction the relevant prefix parity
+ * condition holds with probability one, and a suffix approximation of bias ε
+ * gives pair bias 2·ε². Biham, Dunkelman and Keller's published ASIACRYPT
+ * 2002 enhancement admits a prefix condition that holds with probability p
+ * and assumes the remaining pairs have random output parities. Under that
+ * extra assumption the pair relation
  *
  *     <λout, v> ⊕ <λout, v'> = <λin, ΔY>
  *
- * holds with probability 1/2 + 2·p·ε² on the textbook heuristic — the bias of
- * one approximation squared, times the differential's probability, times two.
- * The heuristic is a *population* statement with assumptions attached, and
- * this module computes all three numbers it can be compared against:
+ * holds with probability 1/2 + 2·p·ε². The p-weighted enhancement is a
+ * *population* heuristic with assumptions attached, and this module computes
+ * all three numbers it can be compared against:
  *
  *   1. the naive heuristic      2·p·ε²          (assumes off-path pairs wash out)
  *   2. the path-aware estimate   Σ w_i·bias_i    (enumerates the DDT row, but
@@ -38,8 +37,10 @@
  * NOT PRODUCTION CRYPTOGRAPHY. The cipher is broken by definition; the point
  * is to watch the composed statistic, its assumptions, and their failure.
  *
- * Primary source: S. K. Langford, M. E. Hellman, "Differential–Linear
- * Cryptanalysis", Advances in Cryptology — CRYPTO '94, LNCS 839, pp. 17–25.
+ * Primary sources: S. K. Langford, M. E. Hellman, "Differential–Linear
+ * Cryptanalysis", CRYPTO '94, LNCS 839, pp. 17–25; E. Biham, O. Dunkelman,
+ * N. Keller, "Enhancing Differential-Linear Cryptanalysis", ASIACRYPT 2002,
+ * LNCS 2501, pp. 254–266.
  */
 
 import { dot, type Sbox } from './sbox.js';
@@ -184,7 +185,7 @@ export function suffixCorrelation(sbox: Sbox, design: DlDesign): number {
   return roundCorrelation(latFor(sbox), design.lambdaIn, design.lambdaOut);
 }
 
-/** The textbook Langford–Hellman heuristic: bias of the pair statistic. */
+/** The Biham–Dunkelman–Keller p-weighted heuristic for the pair-statistic bias. */
 export function naiveBias(p: number, suffixCorr: number): number {
   if (p <= 0 || p > 1) throw new RangeError(`differential probability must be in (0, 1], got ${p}`);
   const eps = Math.abs(suffixCorr) / 2;
@@ -228,8 +229,10 @@ function suffixMap(sbox: Sbox, u: number): number {
 
 /**
  * The path-aware estimate: sum each DDT-row path's exact uniform-u pair bias,
- * weighted by the path's share of the pairs. Assumes the joining values are
- * uniform within each path — the assumption the control breaks.
+ * weighted by the path's share of the pairs. It assumes the joining values are
+ * uniform within each path. The aligned design's real key-dependent population
+ * (1/4 or 5/16 rather than 9/32) shows that assumption is not exact here; the
+ * control instead demonstrates why the off-path-random assumption can fail.
  */
 export function pathAwareBias(sbox: Sbox, design: DlDesign, dX: number): number {
   const rhs = designatedPath(sbox, design, dX).lambdaInDot;
@@ -281,11 +284,11 @@ export interface DlAttackResult {
   readonly measuredBias: number;
   /** Same, over the holdout, for the winning guess. */
   readonly winnerHoldoutBias: number;
-  /** Signed bias of the wrong guess with the largest absolute holdout bias. */
-  readonly maxWrongHoldoutBias: number;
+  /** Signed bias of the non-winner with the largest absolute holdout bias. */
+  readonly maxOtherHoldoutBias: number;
   /** 'recovered' | 'tied' | 'failed', judged against the true subkey. */
   readonly verdict: 'recovered' | 'tied' | 'failed';
-  /** True when the winner's absolute holdout bias beats every wrong guess. */
+  /** True when the winner's absolute holdout bias beats every other hypothesis. */
   readonly holdoutConfirms: boolean;
 }
 
@@ -344,11 +347,11 @@ export function runDlAttack(options: {
 
   const holdoutBias = (g: number): number =>
     holdout.length === 0 ? 0 : (holdoutCounts[g] - holdout.length / 2) / holdout.length;
-  let maxWrongHoldoutBias = 0;
+  let maxOtherHoldoutBias = 0;
   for (const g of candidates) {
     if (g === winner) continue;
     const bias = holdoutBias(g);
-    if (Math.abs(bias) > Math.abs(maxWrongHoldoutBias)) maxWrongHoldoutBias = bias;
+    if (Math.abs(bias) > Math.abs(maxOtherHoldoutBias)) maxOtherHoldoutBias = bias;
   }
   const winnerHoldoutBias = holdoutBias(winner);
 
@@ -369,9 +372,9 @@ export function runDlAttack(options: {
     trueTarget,
     measuredBias: (counts[trueTarget] - attack.length / 2) / attack.length,
     winnerHoldoutBias,
-    maxWrongHoldoutBias,
+    maxOtherHoldoutBias,
     verdict,
-    holdoutConfirms: holdout.length > 0 && Math.abs(winnerHoldoutBias) > Math.abs(maxWrongHoldoutBias),
+    holdoutConfirms: holdout.length > 0 && Math.abs(winnerHoldoutBias) > Math.abs(maxOtherHoldoutBias),
   };
 }
 

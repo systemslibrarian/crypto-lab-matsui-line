@@ -220,7 +220,7 @@ test('the holdout verification confirms the winner on pairs the ranking never sa
   await expect(holdout).toContainText('64 fresh pairs');
   await expect(holdout).toContainText('54 / 64');
   await expect(holdout).toContainText('47 / 64');
-  await expect(holdout).toContainText('The fresh pairs agree');
+  await expect(holdout).toContainText("preserve the winner's separation from every rival");
 });
 
 test('the composition names its pieces: the difference, the joining state, the masks', async ({ page }) => {
@@ -242,6 +242,7 @@ test('the heuristic stack shows all three numbers, including the honest mismatch
   await page.goto(`.${DL_WORKING}`);
   await page.locator('#difflin details.deep').nth(1).locator('summary').click();
   const heuristics = page.locator('#dl-heuristics');
+  await expect(heuristics).toContainText('Biham–Dunkelman–Keller p-weighted');
   await expect(heuristics).toContainText('2·p·ε²');
   await expect(heuristics).toContainText('+9/64');
   await expect(heuristics).toContainText('+9/32');
@@ -271,6 +272,16 @@ test('the control measures exactly zero where the heuristic promised signal', as
   await expect(page.locator('#dl-heuristics')).toContainText('0.0000');
 });
 
+test('a finite-budget control separates exact cancellation from sample noise', async ({ page }) => {
+  await page.goto('.?k=14996&dl=cancelled&dlb=32');
+  await page.locator('#dl-run').click();
+  const verdict = page.locator('#dl-verdict');
+  await expect(verdict).toHaveClass('verdict is-held');
+  await expect(verdict).toContainText('exact signed path sum is 0');
+  await expect(verdict).toContainText('selected 32-pair run measures −0.1250');
+  await expect(verdict).toContainText('finite-sample noise');
+});
+
 test('a starved budget produces an honest tie, not a quiet success', async ({ page }) => {
   await page.goto(`.?k=14996&dl=aligned&dlb=16`);
   await page.locator('#dl-run').click();
@@ -289,6 +300,11 @@ test('a top tie includes the true byte even when numeric ordering lists another 
   await expect(first.locator('.marker.is-key')).toHaveCount(0);
   await expect(page.locator('#dl-ranking .marker.is-key')).toHaveCount(1);
   await expect(page.locator('#dl-ranking .marker.is-key')).toHaveText('actual byte');
+  const rows = page.locator('#dl-ranking tbody tr');
+  await expect(rows.nth(0).locator('td').first()).toHaveText('1');
+  await expect(rows.nth(1).locator('td').first()).toHaveText('1');
+  await expect(rows.nth(2).locator('td').first()).toHaveText('1');
+  await expect(rows.nth(3).locator('td').first()).toHaveText('4');
 });
 
 test('changing composition settings retires the previous ranking', async ({ page }) => {
@@ -301,10 +317,24 @@ test('changing composition settings retires the previous ranking', async ({ page
   await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-stale');
   await expect(page.locator('#dl-status')).toHaveClass('run-status is-stale');
   await expect(page.locator('#dl-ranking .marker.is-key')).toHaveCount(0);
+  await expect(page.locator('#dl-holdout')).toContainText('settings moved after this result');
+  await expect(page.locator('#dl-holdout')).not.toContainText('budget of 128');
 
   await page.locator('#dl-run').click();
   await expect(page.locator('#dl-verdict')).not.toHaveClass('verdict is-stale');
   await expect(page.locator('#dl-status')).toContainText('Counted 16 chosen pairs');
+});
+
+test('composition controls update the URL and survive reload', async ({ page }) => {
+  await page.goto(`.${DL_WORKING}`);
+  await page.click('label[for="dl-cancelled"]');
+  await page.click('label[for="dlb-32"]');
+  await expect.poll(() => new URL(page.url()).searchParams.get('dl')).toBe('cancelled');
+  await expect.poll(() => new URL(page.url()).searchParams.get('dlb')).toBe('32');
+
+  await page.reload();
+  await expect(page.locator('#dl-cancelled')).toBeChecked();
+  await expect(page.locator('#dlb-32')).toBeChecked();
 });
 
 test('the measured success rate is a deterministic curve over 512 keys', async ({ page }) => {

@@ -15,7 +15,7 @@ import { boot, driveAllStates, NARROW, reportCollected, watchPageErrors } from '
  * and at 4096; both ends of the plaintext slider; three shapes of LAT cell; the
  * piling-up trail stepped to the end and reset; the measured success curve and
  * its cancel path; the share link; and the finished page with everything open.
- * Each of those is scanned in {dark, light} × {1280px, 380px}.
+ * Each of those is scanned in the dark theme at 1280px and 380px.
  *
  * Clipboard permission is granted because "Copy experiment link" calls
  * `navigator.clipboard.writeText` inside a try/catch that writes a DIFFERENT

@@ -225,6 +225,50 @@ const cases = [
     ],
     owner: 'changing the composition retires a completed or in-flight success curve',
   },
+  {
+    name: 'finite-budget control calls sample noise the exact path sum',
+    patches: [
+      patch(
+        'src/ui/difflin.ts',
+        '<strong>0</strong>. This selected ${result.attackPairs}-pair run measures',
+        '<strong>${signed(result.measuredBias)}</strong>. This selected ${result.attackPairs}-pair run measures',
+      ),
+    ],
+    owner: 'a finite-budget control separates exact cancellation from sample noise',
+  },
+  {
+    name: 'tied hypotheses receive ordinal rather than shared ranks',
+    patches: [
+      patch(
+        'src/ui/difflin.ts',
+        'candidate.excess > row.excess',
+        'candidate.excess >= row.excess',
+      ),
+    ],
+    owner: 'a top tie includes the true byte even when numeric ordering lists another guess first',
+  },
+  {
+    name: 'stale holdout is rendered as a fresh empty state',
+    patches: [
+      patch(
+        'src/main.ts',
+        "renderDlHoldout($('dl-holdout'), shown, dlView.stale);",
+        "renderDlHoldout($('dl-holdout'), shown, false);",
+      ),
+    ],
+    owner: 'changing composition settings retires the previous ranking',
+  },
+  {
+    name: 'composition controls leave the URL stale',
+    patches: [
+      patch(
+        'src/main.ts',
+        "$('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';\n  renderDlPanel();\n  syncUrl();",
+        "$('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';\n  renderDlPanel();",
+      ),
+    ],
+    owner: 'composition controls update the URL and survive reload',
+  },
 ];
 
 const files = [...new Set(cases.flatMap((c) => c.patches.map((p) => p.file)))];

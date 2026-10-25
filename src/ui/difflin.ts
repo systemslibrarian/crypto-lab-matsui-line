@@ -142,7 +142,7 @@ export function renderDlHeuristics(
         </thead>
         <tbody>
           <tr>
-            <td>Langford–Hellman naive: <strong>2·p·ε²</strong></td>
+            <td>Biham–Dunkelman–Keller p-weighted: <strong>2·p·ε²</strong></td>
             <td class="num">${asFraction(naive, 1024)}</td>
             <td>Off-path pairs wash out; the two texts' approximation errors are independent.</td>
           </tr>
@@ -162,7 +162,7 @@ export function renderDlHeuristics(
     ${
       design.name === 'aligned'
         ? `<p>
-             The naive heuristic <em>understates</em> this cipher. The reason is in the table above:
+             The p-weighted heuristic <em>understates</em> this cipher. The reason is in the table above:
              every path of this DDT row leaves ⟨λin, Δ'⟩ = ${designated.lambdaInDot}, so the off-path assumption fails
              upward. The path-aware estimate is ${asFraction(aware, 1024)}; this session measures
              <strong>${signed(measured.measuredBias)}</strong>. Across keys the full-codebook measurement is 1/4 or 5/16,
@@ -170,7 +170,7 @@ export function renderDlHeuristics(
              still matters: it selects a DDT row whose signed path contributions reinforce.
            </p>`
         : `<p>
-             The control. The naive heuristic promises ${asFraction(naive, 1024)}, but the signed path sum is
+             The control. The p-weighted heuristic promises ${asFraction(naive, 1024)}, but the signed path sum is
              <strong>${asFraction(aware, 1024)}</strong> and the cipher measures
              <strong>${signed(measured.measuredBias)}</strong>, exactly zero. The attack uses the designated path's
              right-hand side for every pair; paths with the opposite ⟨λin, Δ'⟩ therefore contribute with the opposite
@@ -207,9 +207,11 @@ export function renderDlRanking(
     .sort((a, b) => b.excess - a.excess || a.guess - b.guess);
   const top = ranked.slice(0, 8);
   const trueRow = ranked.find((row) => row.guess === result.trueTarget);
-  const rows = top.map((row) => dlRankRow(row, result, reveal, ranked.indexOf(row) + 1));
+  const competitionRank = (row: (typeof ranked)[number]): number =>
+    1 + ranked.filter((candidate) => candidate.excess > row.excess).length;
+  const rows = top.map((row) => dlRankRow(row, result, reveal, competitionRank(row)));
   if (reveal && trueRow && !top.includes(trueRow)) {
-    rows.push(dlRankRow(trueRow, result, reveal, ranked.indexOf(trueRow) + 1));
+    rows.push(dlRankRow(trueRow, result, reveal, competitionRank(trueRow)));
   }
   table.innerHTML = `
     ${table.querySelector('caption')?.outerHTML ?? ''}
@@ -269,8 +271,10 @@ export function renderDlVerdict(
     el.innerHTML = `
       <div class="verdict-head"><span class="verdict-icon" aria-hidden="true">■</span><span>NO SIGNAL — THE CONTROL</span></div>
       <p>
-        The heuristic promised ${asFraction(naiveBias, 1024)};
-        the signed path sum and measurement both say <strong>${signed(result.measuredBias)}</strong>. This output mask
+        The p-weighted heuristic promised ${asFraction(naiveBias, 1024)}, but the exact signed path sum is
+        <strong>0</strong>. This selected ${result.attackPairs}-pair run measures
+        <strong>${signed(result.measuredBias)}</strong>; any nonzero deviation at a partial budget is finite-sample
+        noise around a full-codebook population that measures zero for every key. This output mask
         observes only the high key nibble, so the page ranks ${result.candidates.length} high-nibble hypotheses—not 256 pretend byte guesses.
         Over 512 deterministic keys the signal-free ranking recovers that nibble 0 times at 96 and 128 pairs.
         The naive assumption that failed was that off-path pairs wash out; the path table exposes their cancellation.
@@ -306,25 +310,31 @@ export function renderDlVerdict(
 }
 
 /** The holdout verification: fresh pairs the ranking never touched. */
-export function renderDlHoldout(el: HTMLElement, result: DlAttackResult | null, spent: boolean): void {
-  if (!result || result.holdoutPairs === 0) {
-    el.innerHTML = spent
-      ? '<p>Every pair went into the ranking at a budget of 128, so there is nothing held back. Drop the budget to keep a holdout.</p>'
-      : '<p>Run the composition first; the verification spends pairs the ranking never touched.</p>';
+export function renderDlHoldout(el: HTMLElement, result: DlAttackResult | null, stale: boolean): void {
+  if (stale) {
+    el.innerHTML = '<p>The settings moved after this result. Run the composition again before interpreting a holdout.</p>';
+    return;
+  }
+  if (!result) {
+    el.innerHTML = '<p>Run the composition first; the verification spends pairs the ranking never touched.</p>';
+    return;
+  }
+  if (result.holdoutPairs === 0) {
+    el.innerHTML = '<p>Every pair went into the ranking at a budget of 128, so there is nothing held back. Drop the budget to keep a holdout.</p>';
     return;
   }
   const winnerHeld = result.holdoutCounts[result.winner];
-  const bestWrongHeld = result.holdoutPairs / 2 + result.maxWrongHoldoutBias * result.holdoutPairs;
+  const bestOtherHeld = result.holdoutPairs / 2 + result.maxOtherHoldoutBias * result.holdoutPairs;
   el.innerHTML = `
     <p>
       <strong>Independent check on ${result.holdoutPairs} fresh pairs</strong> (the ranking never saw them):
       the winning guess keeps <strong>${winnerHeld} / ${result.holdoutPairs}</strong> agreements
       (bias ${signed(result.winnerHoldoutBias)}), while the strongest of the ${result.candidates.length - 1}
-      wrong ${result.targetMask === 0xff ? 'byte' : 'nibble'} guesses manages <strong>${Math.round(bestWrongHeld)} / ${result.holdoutPairs}</strong>
-      (bias ${signed(result.maxWrongHoldoutBias)}).
+      other ${result.targetMask === 0xff ? 'byte' : 'nibble'} hypotheses has <strong>${Math.round(bestOtherHeld)} / ${result.holdoutPairs}</strong>
+      (bias ${signed(result.maxOtherHoldoutBias)}).
       ${
         result.holdoutConfirms
-          ? 'The fresh pairs agree: the winner is real, not a fluke of the attack half.'
+          ? "The fresh pairs preserve the winner's separation from every rival in this bounded run."
           : 'The fresh pairs do NOT separate the winner from the field — treat the ranking with suspicion.'
       }
     </p>`;

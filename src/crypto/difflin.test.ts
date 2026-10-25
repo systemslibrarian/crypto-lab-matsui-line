@@ -126,7 +126,7 @@ describe('the suffix and the heuristic stack', () => {
     expect(suffixCorrelation(heys, CANCELLED)).toBe(-0.5);
   });
 
-  it('computes the naive Langford–Hellman bias for both designs', () => {
+  it('computes the Biham–Dunkelman–Keller p-weighted bias for both designs', () => {
     // 2 · p · ε² with p = 1/2: aligned ε = 3/8 → 9/64; control ε = 1/4 → 1/16.
     expect(naiveBias(0.5, suffixCorrelation(heys, ALIGNED))).toBeCloseTo(9 / 64, 12);
     expect(naiveBias(0.5, suffixCorrelation(heys, CANCELLED))).toBeCloseTo(1 / 16, 12);
@@ -229,10 +229,10 @@ describe('the composed attack on the real cipher', () => {
     const result = runDlAttack({ sbox: heys, key: pinnedKey, design: ALIGNED, budget: 64 });
     expect(result.holdoutPairs).toBe(64);
     // The winner keeps 54/64 on fresh pairs (bias 11/32) while the best wrong
-    // guess manages 47/64 (bias 15/64).
+    // rival hypothesis has 47/64 (bias 15/64).
     expect(result.holdoutCounts[0xa9]).toBe(54);
     expect(result.winnerHoldoutBias).toBeCloseTo(11 / 32, 12);
-    expect(result.maxWrongHoldoutBias).toBeCloseTo(15 / 64, 12);
+    expect(result.maxOtherHoldoutBias).toBeCloseTo(15 / 64, 12);
     expect(result.holdoutConfirms).toBe(true);
   });
 
@@ -269,6 +269,11 @@ describe('the composed attack on the real cipher', () => {
     expect(result.measuredBias).toBe(0);
     expect(result.verdict).toBe('failed');
     expect(result.winner).not.toBe(result.trueSubkey);
+
+    // A partial budget is only a sample of that zero-bias population. It must
+    // not be conflated with the exact path sum or full-codebook measurement.
+    const finite = runDlAttack({ sbox: heys, key: pinnedKey, design: CANCELLED, budget: 32 });
+    expect(finite.measuredBias).toBe(-1 / 8);
   });
 
   it('never counts an alias as a distinct candidate in the aligned design', () => {

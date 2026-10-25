@@ -896,6 +896,7 @@ function invalidateDl(): void {
   $('dl-measure-result').replaceChildren();
   $('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';
   renderDlPanel();
+  syncUrl();
 }
 
 function runDlComposition(): void {
@@ -975,7 +976,7 @@ function renderDlPanel(): void {
       : 'The 16 observable last-round high-nibble hypotheses, ranked by absolute bias',
   );
   renderDlRanking($<HTMLTableElement>('dl-ranking'), shown, shown !== null, design);
-  renderDlHoldout($('dl-holdout'), shown, dlView.result !== null);
+  renderDlHoldout($('dl-holdout'), shown, dlView.stale);
   renderDlSetup($('dl-setup'), { sbox: DL_SBOX, design });
   renderDlPaths($('dl-paths'), { sbox: DL_SBOX, design });
   renderDlHeuristics($('dl-heuristics'), { sbox: DL_SBOX, design }, view.key);
