@@ -1,0 +1,163 @@
+[
+  {
+    "name": "DDT entry count doubled",
+    "patches": [
+      {
+        "file": "src/crypto/difflin.ts",
+        "anchor": "table[din][sbox.table[x] ^ sbox.table[x ^ din]] += 1;",
+        "replacement": "table[din][sbox.table[x] ^ sbox.table[x ^ din]] += 2;"
+      }
+    ],
+    "namedTest": "the composition names its pieces: the difference, the joining state, the masks",
+    "baselineGreen": true,
+    "nonEmptyDiff": true,
+    "sourceDiff": "diff --git a/src/crypto/difflin.ts b/src/crypto/difflin.ts\nindex faa3409..46f0ab3 100644\n--- a/src/crypto/difflin.ts\n+++ b/src/crypto/difflin.ts\n@@ -101,7 +101,7 @@ export function buildDdt(sbox: Sbox): DdtTable {\n   const table: number[][] = Array.from({ length: 16 }, () => new Array<number>(16).fill(0));\n   for (let din = 0; din < 16; din++) {\n     for (let x = 0; x < 16; x++) {\n-      table[din][sbox.table[x] ^ sbox.table[x ^ din]] += 1;\n+      table[din][sbox.table[x] ^ sbox.table[x ^ din]] += 2;\n     }\n   }\n   return { table };\n",
+    "baseline": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059",
+    "mutant": "fee72785e59b58bb8b128aceec3028969f16da63732bfed77a168f0b57dae472",
+    "bundleHashMoved": true,
+    "namedTestRed": true,
+    "assertionFailure": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#dl-setup')\nTimeout: 5000ms\n\u001b[32m- Expected substring  -  1\u001b[39m\n\u001b[31m+ Received string     + 39\u001b[39m\n\n\u001b[32m- 8 of 16\u001b[39m\n\u001b[31m+\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+         Differential prefix — round 1\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+           Choose plaintext pairs with difference ΔX = 0x0B (0000 1011).\u001b[39m\n\u001b[31m+           Through the S-box the difference 0x0B → 0x02 occurs for\u001b[39m\n\u001b[31m+           16 of 16 inputs — the heaviest entry of that DDT row, so the\u001b[39m\n\u001b[31m+           differential holds with probability p = 1.\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+         Joining state\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+           The state entering round 2. On the designated path its difference is\u001b[39m\n\u001b[31m+           ΔY = 0x08 — the permuted S-box output difference.\u001b[39m\n\u001b[31m+           This is the explicit intermediate state where the two attacks are welded together.\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+         Linear suffix — round 2\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+           u1 = v6 ⊕ v3 ⊕ v2 ⊕ b\u001b[39m\n\u001b[31m+           with correlation −0.7500, a bias of ε = 3/8 —\u001b[39m\n\u001b[31m+           measured over all 256 values of the joining state, not asserted.\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+       The composed statistic, on chosen pairs\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+         For each pair (x, x⊕ΔX), peel the last round under a candidate subkey byte g and count agreement of\u001b[39m\n\u001b[31m+         ⟨λout, v⟩ ⊕ ⟨λout, v'⟩ = ⟨λin, ΔY⟩\u001b[39m\n\u001b[31m+         where the right-hand side is 0 for this design.\u001b[39m\n\u001b[31m+         The two approximation constants b cancel in the pair — which is the entire trick.\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+     λin = 0x02 reads a bit of the joining state that no path of this DDT row can move.\u001b[39m\n\u001b[31m+ \u001b[43m  \u001b[49m\u001b[39m\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#dl-setup') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#dl-setup')\u001b[22m\n\u001b[2m    14 × locator resolved to <div id=\"dl-setup\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"\u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m        Differential prefix — round 1\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m          Choose plaintext pairs with difference ΔX = 0x0B (0000 1011).\u001b[22m\n\u001b[2m          Through the S-box the difference 0x0B → 0x02 occurs for\u001b[22m\n\u001b[2m          16 of 16 inputs — the heaviest entry of that DDT row, so the\u001b[22m\n\u001b[2m          differential holds with probability p = 1.\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m        Joining state\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m          The state entering round 2. On the designated path its difference is\u001b[22m\n\u001b[2m          ΔY = 0x08 — the permuted S-box output difference.\u001b[22m\n\u001b[2m          This is the explicit intermediate state where the two attacks are welded together.\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m        Linear suffix — round 2\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m          u1 = v6 ⊕ v3 ⊕ v2 ⊕ b\u001b[22m\n\u001b[2m          with correlation −0.7500, a bias of ε = 3/8 —\u001b[22m\n\u001b[2m          measured over all 256 values of the joining state, not asserted.\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m      The composed statistic, on chosen pairs\u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m        For each pair (x, x⊕ΔX), peel the last round under a candidate subkey byte g and count agreement of\u001b[22m\n\u001b[2m        ⟨λout, v⟩ ⊕ ⟨λout, v'⟩ = ⟨λin, ΔY⟩\u001b[22m\n\u001b[2m        where the right-hand side is 0 for this design.\u001b[22m\n\u001b[2m        The two approximation constants b cancel in the pair — which is the entire trick.\u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m    λin = 0x02 reads a bit of the joining state that no path of this DDT row can move.\u001b[22m\n\u001b[2m  \"\u001b[22m\n\n\n  228 |   const setup = page.locator('#dl-setup');\n  229 |   await expect(setup).toContainText('ΔX = 0x0B');\n> 230 |   await expect(setup).toContainText('8 of 16');\n      |                       ^\n  231 |   await expect(setup).toContainText('p = 1/2');\n  232 |   await expect(setup).toContainText('ΔY = 0x08');\n  233 |   await expect(setup).toContainText('entering round 2');\n    at /Users/gmcas/repos/crypto-lab-matsui-line-ad14/e2e/behaviour.spec.ts:230:23",
+    "retries": 0,
+    "skips": 0,
+    "restoredGreen": true,
+    "restoredHash": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059"
+  },
+  {
+    "name": "naive heuristic drops one epsilon",
+    "patches": [
+      {
+        "file": "src/crypto/difflin.ts",
+        "anchor": "return 2 * p * eps * eps;",
+        "replacement": "return 2 * p * eps;"
+      }
+    ],
+    "namedTest": "the heuristic stack shows all three numbers, including the honest mismatch",
+    "baselineGreen": true,
+    "nonEmptyDiff": true,
+    "sourceDiff": "diff --git a/src/crypto/difflin.ts b/src/crypto/difflin.ts\nindex faa3409..db2549c 100644\n--- a/src/crypto/difflin.ts\n+++ b/src/crypto/difflin.ts\n@@ -186,7 +186,7 @@ export function suffixCorrelation(sbox: Sbox, design: DlDesign): number {\n export function naiveBias(p: number, suffixCorr: number): number {\n   if (p <= 0 || p > 1) throw new RangeError(`differential probability must be in (0, 1], got ${p}`);\n   const eps = Math.abs(suffixCorr) / 2;\n-  return 2 * p * eps * eps;\n+  return 2 * p * eps;\n }\n \n /**\n",
+    "baseline": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059",
+    "mutant": "af408f996c82376c5279a7c16c0b3e149839f6a3791eadad7026f21ca13c1378",
+    "bundleHashMoved": true,
+    "namedTestRed": true,
+    "assertionFailure": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#dl-heuristics')\nTimeout: 5000ms\n\u001b[32m- Expected substring  -  1\u001b[39m\n\u001b[31m+ Received string     + 33\u001b[39m\n\n\u001b[32m- +9/64\u001b[39m\n\u001b[31m+\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+         Three predictions of the pair-statistic bias and the measured value.\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+           PredictionBiasAssumes\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+             Langford–Hellman naive: 2·p·ε²\u001b[39m\n\u001b[31m+             +3/8\u001b[39m\n\u001b[31m+             Off-path pairs wash out; the two texts' approximation errors are independent.\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+             Path-aware: Σ wᵢ·biasᵢ\u001b[39m\n\u001b[31m+             +9/32\u001b[39m\n\u001b[31m+             Same, plus: joining values are uniform within each DDT path.\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+             Measured — all 128 pairs, this session's key\u001b[39m\n\u001b[31m+             +0.3125\u001b[39m\n\u001b[31m+             Nothing. Counted on the real cipher.\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+              The naive heuristic understates this cipher by more than half. The reason is in the table above:\u001b[39m\n\u001b[31m+              every path of this DDT row leaves ⟨λin, Δ'⟩ = 0, so the off-path assumption fails\u001b[39m\n\u001b[31m+              upward — the off-path pairs carry the same pair bias as the designated path. The differential\u001b[39m\n\u001b[31m+              still matters: it selects a DDT row whose paths align. Other differences do not.\u001b[39m\n\u001b[31m+ \u001b[43m           \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m  \u001b[49m\u001b[39m\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#dl-heuristics') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#dl-heuristics')\u001b[22m\n\u001b[2m    14 × locator resolved to <div id=\"dl-heuristics\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"\u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m        Three predictions of the pair-statistic bias and the measured value.\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m          PredictionBiasAssumes\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m            Langford–Hellman naive: 2·p·ε²\u001b[22m\n\u001b[2m            +3/8\u001b[22m\n\u001b[2m            Off-path pairs wash out; the two texts' approximation errors are independent.\u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m            Path-aware: Σ wᵢ·biasᵢ\u001b[22m\n\u001b[2m            +9/32\u001b[22m\n\u001b[2m            Same, plus: joining values are uniform within each DDT path.\u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m            Measured — all 128 pairs, this session's key\u001b[22m\n\u001b[2m            +0.3125\u001b[22m\n\u001b[2m            Nothing. Counted on the real cipher.\u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m             The naive heuristic understates this cipher by more than half. The reason is in the table above:\u001b[22m\n\u001b[2m             every path of this DDT row leaves ⟨λin, Δ'⟩ = 0, so the off-path assumption fails\u001b[22m\n\u001b[2m             upward — the off-path pairs carry the same pair bias as the designated path. The differential\u001b[22m\n\u001b[2m             still matters: it selects a DDT row whose paths align. Other differences do not.\u001b[22m\n\u001b[2m           \u001b[22m\n\u001b[2m  \"\u001b[22m\n\n\n  241 |   const heuristics = page.locator('#dl-heuristics');\n  242 |   await expect(heuristics).toContainText('2·p·ε²');\n> 243 |   await expect(heuristics).toContainText('+9/64');\n      |                            ^\n  244 |   await expect(heuristics).toContainText('+9/32');\n  245 |   await expect(heuristics).toContainText('+0.3125');\n  246 |   await expect(heuristics).toContainText('understates');\n    at /Users/gmcas/repos/crypto-lab-matsui-line-ad14/e2e/behaviour.spec.ts:243:28",
+    "retries": 0,
+    "skips": 0,
+    "restoredGreen": true,
+    "restoredHash": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059"
+  },
+  {
+    "name": "path-aware sum flips sign",
+    "patches": [
+      {
+        "file": "src/crypto/difflin.ts",
+        "anchor": "total += path.weight * pathPairBias(sbox, design, path.joiningDiff);",
+        "replacement": "total -= path.weight * pathPairBias(sbox, design, path.joiningDiff);"
+      }
+    ],
+    "namedTest": "the heuristic stack shows all three numbers, including the honest mismatch",
+    "baselineGreen": true,
+    "nonEmptyDiff": true,
+    "sourceDiff": "diff --git a/src/crypto/difflin.ts b/src/crypto/difflin.ts\nindex faa3409..ebd6238 100644\n--- a/src/crypto/difflin.ts\n+++ b/src/crypto/difflin.ts\n@@ -222,7 +222,7 @@ function suffixMap(sbox: Sbox, u: number): number {\n export function pathAwareBias(sbox: Sbox, design: DlDesign, dX: number): number {\n   let total = 0;\n   for (const path of prefixPaths(sbox, design, dX)) {\n-    total += path.weight * pathPairBias(sbox, design, path.joiningDiff);\n+    total -= path.weight * pathPairBias(sbox, design, path.joiningDiff);\n   }\n   return total;\n }\n",
+    "baseline": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059",
+    "mutant": "ebaff155d5fe4b9f60f7382ed6442c2fed806de59a9e370c92f47807b373e7b3",
+    "bundleHashMoved": true,
+    "namedTestRed": true,
+    "assertionFailure": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#dl-heuristics')\nTimeout: 5000ms\n\u001b[32m- Expected substring  -  1\u001b[39m\n\u001b[31m+ Received string     + 33\u001b[39m\n\n\u001b[32m- +9/32\u001b[39m\n\u001b[31m+\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+         Three predictions of the pair-statistic bias and the measured value.\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+           PredictionBiasAssumes\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+             Langford–Hellman naive: 2·p·ε²\u001b[39m\n\u001b[31m+             +9/64\u001b[39m\n\u001b[31m+             Off-path pairs wash out; the two texts' approximation errors are independent.\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+             Path-aware: Σ wᵢ·biasᵢ\u001b[39m\n\u001b[31m+             −9/32\u001b[39m\n\u001b[31m+             Same, plus: joining values are uniform within each DDT path.\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+             Measured — all 128 pairs, this session's key\u001b[39m\n\u001b[31m+             +0.3125\u001b[39m\n\u001b[31m+             Nothing. Counted on the real cipher.\u001b[39m\n\u001b[31m+ \u001b[43m          \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m        \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m      \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+              The naive heuristic understates this cipher by more than half. The reason is in the table above:\u001b[39m\n\u001b[31m+              every path of this DDT row leaves ⟨λin, Δ'⟩ = 0, so the off-path assumption fails\u001b[39m\n\u001b[31m+              upward — the off-path pairs carry the same pair bias as the designated path. The differential\u001b[39m\n\u001b[31m+              still matters: it selects a DDT row whose paths align. Other differences do not.\u001b[39m\n\u001b[31m+ \u001b[43m           \u001b[49m\u001b[39m\n\u001b[31m+ \u001b[43m  \u001b[49m\u001b[39m\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#dl-heuristics') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#dl-heuristics')\u001b[22m\n\u001b[2m    14 × locator resolved to <div id=\"dl-heuristics\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"\u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m        Three predictions of the pair-statistic bias and the measured value.\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m          PredictionBiasAssumes\u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m            Langford–Hellman naive: 2·p·ε²\u001b[22m\n\u001b[2m            +9/64\u001b[22m\n\u001b[2m            Off-path pairs wash out; the two texts' approximation errors are independent.\u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m            Path-aware: Σ wᵢ·biasᵢ\u001b[22m\n\u001b[2m            −9/32\u001b[22m\n\u001b[2m            Same, plus: joining values are uniform within each DDT path.\u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m            Measured — all 128 pairs, this session's key\u001b[22m\n\u001b[2m            +0.3125\u001b[22m\n\u001b[2m            Nothing. Counted on the real cipher.\u001b[22m\n\u001b[2m          \u001b[22m\n\u001b[2m        \u001b[22m\n\u001b[2m      \u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m             The naive heuristic understates this cipher by more than half. The reason is in the table above:\u001b[22m\n\u001b[2m             every path of this DDT row leaves ⟨λin, Δ'⟩ = 0, so the off-path assumption fails\u001b[22m\n\u001b[2m             upward — the off-path pairs carry the same pair bias as the designated path. The differential\u001b[22m\n\u001b[2m             still matters: it selects a DDT row whose paths align. Other differences do not.\u001b[22m\n\u001b[2m           \u001b[22m\n\u001b[2m  \"\u001b[22m\n\n\n  242 |   await expect(heuristics).toContainText('2·p·ε²');\n  243 |   await expect(heuristics).toContainText('+9/64');\n> 244 |   await expect(heuristics).toContainText('+9/32');\n      |                            ^\n  245 |   await expect(heuristics).toContainText('+0.3125');\n  246 |   await expect(heuristics).toContainText('understates');\n  247 | });\n    at /Users/gmcas/repos/crypto-lab-matsui-line-ad14/e2e/behaviour.spec.ts:244:28",
+    "retries": 0,
+    "skips": 0,
+    "restoredGreen": true,
+    "restoredHash": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059"
+  },
+  {
+    "name": "last-round peel uses the forward S-box",
+    "patches": [
+      {
+        "file": "src/crypto/difflin.ts",
+        "anchor": "const v1 = sbox.inverse[(c1 ^ guess) >> 4] << 4 | sbox.inverse[(c1 ^ guess) & 0xf];",
+        "replacement": "const v1 = sbox.table[(c1 ^ guess) >> 4] << 4 | sbox.table[(c1 ^ guess) & 0xf];"
+      }
+    ],
+    "namedTest": "the aligned composition recovers the last-round byte from chosen pairs",
+    "baselineGreen": true,
+    "nonEmptyDiff": true,
+    "sourceDiff": "diff --git a/src/crypto/difflin.ts b/src/crypto/difflin.ts\nindex faa3409..7118638 100644\n--- a/src/crypto/difflin.ts\n+++ b/src/crypto/difflin.ts\n@@ -287,7 +287,7 @@ export function runDlAttack(options: {\n       const c1 = encrypt(x, key, sbox, DL_ROUNDS);\n       const c2 = encrypt(other, key, sbox, DL_ROUNDS);\n       for (let guess = 0; guess < 256; guess++) {\n-        const v1 = sbox.inverse[(c1 ^ guess) >> 4] << 4 | sbox.inverse[(c1 ^ guess) & 0xf];\n+        const v1 = sbox.table[(c1 ^ guess) >> 4] << 4 | sbox.table[(c1 ^ guess) & 0xf];\n         const v2 = sbox.inverse[(c2 ^ guess) >> 4] << 4 | sbox.inverse[(c2 ^ guess) & 0xf];\n         if ((dot(design.lambdaOut, v1) ^ dot(design.lambdaOut, v2) ^ rhs) === 0) into[guess] += 1;\n       }\n",
+    "baseline": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059",
+    "mutant": "64876d50135f351ee0daff319c3baebf0e6defbfa7e7247c365756ea2e2ce7f2",
+    "bundleHashMoved": true,
+    "namedTestRed": true,
+    "assertionFailure": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveClass\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('#dl-verdict')\nExpected: \u001b[32m\"verdict is-\u001b[7mbroken\u001b[27m\"\u001b[39m\nReceived: \u001b[31m\"verdict is-\u001b[7mheld\u001b[27m\"\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveClass\" locator('#dl-verdict') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#dl-verdict')\u001b[22m\n\u001b[2m    14 × locator resolved to <div role=\"status\" id=\"dl-verdict\" aria-live=\"polite\" class=\"verdict is-held\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"verdict is-held\"\u001b[22m\n\n\n  201 |   await page.goto(`.${DL_WORKING}`);\n  202 |   await page.locator('#dl-run').click();\n> 203 |   await expect(page.locator('#dl-verdict')).toHaveClass('verdict is-broken');\n      |                                             ^\n  204 |   await expect(page.locator('#dl-verdict')).toContainText('LAST-ROUND BYTE RECOVERED');\n  205 |   await expect(page.locator('#dl-verdict')).toContainText('0xA9');\n  206 |   await expect(page.locator('#dl-status')).toContainText('Counted 64 chosen pairs (128 oracle queries)');\n    at /Users/gmcas/repos/crypto-lab-matsui-line-ad14/e2e/behaviour.spec.ts:203:45",
+    "retries": 0,
+    "skips": 0,
+    "restoredGreen": true,
+    "restoredHash": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059"
+  },
+  {
+    "name": "holdout reuses the attack pairs",
+    "patches": [
+      {
+        "file": "src/crypto/difflin.ts",
+        "anchor": "const holdout = pairs.slice(budget);",
+        "replacement": "const holdout = pairs.slice(0, budget);"
+      }
+    ],
+    "namedTest": "the holdout verification confirms the winner on pairs the ranking never saw",
+    "baselineGreen": true,
+    "nonEmptyDiff": true,
+    "sourceDiff": "diff --git a/src/crypto/difflin.ts b/src/crypto/difflin.ts\nindex faa3409..ed24db1 100644\n--- a/src/crypto/difflin.ts\n+++ b/src/crypto/difflin.ts\n@@ -276,7 +276,7 @@ export function runDlAttack(options: {\n   const rhs = dot(design.lambdaIn, designated.joiningDiff);\n   const pairs = chosenPairs(dX, 128);\n   const attack = pairs.slice(0, budget);\n-  const holdout = pairs.slice(budget);\n+  const holdout = pairs.slice(0, budget);\n \n   const counts = new Array<number>(256).fill(0);\n   const holdoutCounts = new Array<number>(256).fill(0);\n",
+    "baseline": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059",
+    "mutant": "bce32c45a536f9d0f60f8213cf78ec421e60a719cf4083a8cd4f113cab5ffe25",
+    "bundleHashMoved": true,
+    "namedTestRed": true,
+    "assertionFailure": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#dl-holdout')\nTimeout: 5000ms\n\u001b[32m- Expected substring  - 1\u001b[39m\n\u001b[31m+ Received string     + 9\u001b[39m\n\n\u001b[32m- 54 / 64\u001b[39m\n\u001b[31m+\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\u001b[31m+       Independent check on 64 fresh pairs (the ranking never saw them):\u001b[39m\n\u001b[31m+       the winning guess keeps 50 / 64 agreements\u001b[39m\n\u001b[31m+       (bias +0.2813), while the best of the 255\u001b[39m\n\u001b[31m+       wrong guesses manages 46 / 64\u001b[39m\n\u001b[31m+       (bias +0.2188).\u001b[39m\n\u001b[31m+       The fresh pairs agree: the winner is real, not a fluke of the attack half.\u001b[39m\n\u001b[31m+ \u001b[43m    \u001b[49m\u001b[39m\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#dl-holdout') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#dl-holdout')\u001b[22m\n\u001b[2m    14 × locator resolved to <div id=\"dl-holdout\" class=\"dl-holdout\">…</div>\u001b[22m\n\u001b[2m       - unexpected value \"\u001b[22m\n\u001b[2m    \u001b[22m\n\u001b[2m      Independent check on 64 fresh pairs (the ranking never saw them):\u001b[22m\n\u001b[2m      the winning guess keeps 50 / 64 agreements\u001b[22m\n\u001b[2m      (bias +0.2813), while the best of the 255\u001b[22m\n\u001b[2m      wrong guesses manages 46 / 64\u001b[22m\n\u001b[2m      (bias +0.2188).\u001b[22m\n\u001b[2m      The fresh pairs agree: the winner is real, not a fluke of the attack half.\u001b[22m\n\u001b[2m    \"\u001b[22m\n\n\n  219 |   const holdout = page.locator('#dl-holdout');\n  220 |   await expect(holdout).toContainText('64 fresh pairs');\n> 221 |   await expect(holdout).toContainText('54 / 64');\n      |                         ^\n  222 |   await expect(holdout).toContainText('47 / 64');\n  223 |   await expect(holdout).toContainText('The fresh pairs agree');\n  224 | });\n    at /Users/gmcas/repos/crypto-lab-matsui-line-ad14/e2e/behaviour.spec.ts:221:25",
+    "retries": 0,
+    "skips": 0,
+    "restoredGreen": true,
+    "restoredHash": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059"
+  },
+  {
+    "name": "attack budget quietly halved",
+    "patches": [
+      {
+        "file": "src/crypto/difflin.ts",
+        "anchor": "const attack = pairs.slice(0, budget);",
+        "replacement": "const attack = pairs.slice(0, budget / 2);"
+      }
+    ],
+    "namedTest": "the aligned composition recovers the last-round byte from chosen pairs",
+    "baselineGreen": true,
+    "nonEmptyDiff": true,
+    "sourceDiff": "diff --git a/src/crypto/difflin.ts b/src/crypto/difflin.ts\nindex faa3409..f18c4f2 100644\n--- a/src/crypto/difflin.ts\n+++ b/src/crypto/difflin.ts\n@@ -275,7 +275,7 @@ export function runDlAttack(options: {\n   const designated = designatedPath(sbox, design, dX);\n   const rhs = dot(design.lambdaIn, designated.joiningDiff);\n   const pairs = chosenPairs(dX, 128);\n-  const attack = pairs.slice(0, budget);\n+  const attack = pairs.slice(0, budget / 2);\n   const holdout = pairs.slice(budget);\n \n   const counts = new Array<number>(256).fill(0);\n",
+    "baseline": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059",
+    "mutant": "24a035bd50017563838c4923b498fd0d06410f52d6d3e00e91f527dc50703892",
+    "bundleHashMoved": true,
+    "namedTestRed": true,
+    "assertionFailure": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoContainText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator: locator('#dl-status')\nExpected substring: \u001b[32m\"Counted \u001b[7m64\u001b[27m chosen pairs (\u001b[7m128\u001b[27m oracle queries)\"\u001b[39m\nReceived string:    \u001b[31m\"Counted \u001b[7m32\u001b[27m chosen pairs (\u001b[7m64\u001b[27m oracle queries)\u001b[7m; 64 held back.\u001b[27m\"\u001b[39m\nTimeout: 5000ms\n\nCall log:\n\u001b[2m  - Expect \"toContainText\" locator('#dl-status') with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#dl-status')\u001b[22m\n\u001b[2m    14 × locator resolved to <div role=\"status\" id=\"dl-status\" aria-live=\"polite\" class=\"run-status is-done\">Counted 32 chosen pairs (64 oracle queries); 64 h…</div>\u001b[22m\n\u001b[2m       - unexpected value \"Counted 32 chosen pairs (64 oracle queries); 64 held back.\"\u001b[22m\n\n\n  204 |   await expect(page.locator('#dl-verdict')).toContainText('LAST-ROUND BYTE RECOVERED');\n  205 |   await expect(page.locator('#dl-verdict')).toContainText('0xA9');\n> 206 |   await expect(page.locator('#dl-status')).toContainText('Counted 64 chosen pairs (128 oracle queries)');\n      |                                            ^\n  207 |   const top = page.locator('#dl-ranking tbody tr').first();\n  208 |   await expect(top).toContainText('0xA9');\n  209 |   await expect(top.locator('.marker.is-pick')).toBeVisible();\n    at /Users/gmcas/repos/crypto-lab-matsui-line-ad14/e2e/behaviour.spec.ts:206:44",
+    "retries": 0,
+    "skips": 0,
+    "restoredGreen": true,
+    "restoredHash": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059"
+  },
+  {
+    "name": "success-rate measurement subtracts its wins",
+    "patches": [
+      {
+        "file": "src/crypto/difflin.ts",
+        "anchor": "wins += 1;",
+        "replacement": "wins -= 1;"
+      }
+    ],
+    "namedTest": "the measured success rate is a deterministic curve over 512 keys",
+    "baselineGreen": true,
+    "nonEmptyDiff": true,
+    "sourceDiff": "diff --git a/src/crypto/difflin.ts b/src/crypto/difflin.ts\nindex faa3409..64c6d94 100644\n--- a/src/crypto/difflin.ts\n+++ b/src/crypto/difflin.ts\n@@ -367,7 +367,7 @@ export function measureDlSuccessRate(options: DlMeasureOptions): DlSuccessPoint[\n     for (let i = 0; i < keyCount; i++) {\n       const result = runDlAttack({ sbox, key: generateKey((i * 129) & 0xffff), design, budget });\n       if (result.verdict !== 'failed') {\n-        wins += 1;\n+        wins -= 1;\n         if (result.verdict === 'tied') tiedWins += 1;\n       }\n       completed += 1;\n",
+    "baseline": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059",
+    "mutant": "610d7e5927755e257c33001c7e1be45956de510cdda761f3383bba50e1f79033",
+    "bundleHashMoved": true,
+    "namedTestRed": true,
+    "assertionFailure": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveText\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  locator('#dl-measure-result .dl-curve tbody tr').first().locator('td').nth(2)\nExpected: \u001b[32m\"21.5%\"\u001b[39m\nReceived: \u001b[31m\"\u001b[7m-\u001b[27m21.5%\"\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveText\" locator('#dl-measure-result .dl-curve tbody tr').first().locator('td').nth(2) with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for locator('#dl-measure-result .dl-curve tbody tr').first().locator('td').nth(2)\u001b[22m\n\u001b[2m    14 × locator resolved to <td class=\"num\">-21.5%</td>\u001b[22m\n\u001b[2m       - unexpected value \"-21.5%\"\u001b[22m\n\n\n  303 |   // a substring.\n  304 |   const rate = (row: number) => rows.nth(row).locator('td').nth(2);\n> 305 |   await expect(rate(0)).toHaveText('21.5%');\n      |                         ^\n  306 |   await expect(rate(1)).toHaveText('55.9%');\n  307 |   await expect(rate(2)).toHaveText('83.4%');\n  308 |   await expect(rate(3)).toHaveText('99.8%');\n    at /Users/gmcas/repos/crypto-lab-matsui-line-ad14/e2e/behaviour.spec.ts:305:25",
+    "retries": 0,
+    "skips": 0,
+    "restoredGreen": true,
+    "restoredHash": "ef350e8a225dab0169d8d0f20900179d771a21e82c21613adc27b99fe8abf059"
+  }
+]

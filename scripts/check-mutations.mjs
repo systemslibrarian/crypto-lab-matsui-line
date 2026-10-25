@@ -175,13 +175,9 @@ const cases = [
     owner: 'the aligned composition recovers the last-round byte',
   },
   {
-    name: 'success-rate measurement inverts its wins',
+    name: 'success-rate measurement subtracts its wins',
     patches: [
-      patch(
-        'src/crypto/difflin.ts',
-        'if (result.verdict !== "failed") {',
-        'if (result.verdict === "failed") {',
-      ),
+      patch('src/crypto/difflin.ts', 'wins += 1;', 'wins -= 1;'),
     ],
     owner: 'the measured success rate is a deterministic curve',
   },
