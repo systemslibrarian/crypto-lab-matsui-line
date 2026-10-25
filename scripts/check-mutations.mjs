@@ -179,8 +179,8 @@ const cases = [
     patches: [
       patch(
         'src/crypto/difflin.ts',
-        'const attack = pairs.slice(0, budget);',
-        'const attack = pairs.slice(0, budget / 2);',
+        'const attack = chosenPairs(dX, budget);',
+        'const attack = chosenPairs(dX, budget / 2);',
       ),
     ],
     owner: 'the aligned composition recovers the last-round byte',
