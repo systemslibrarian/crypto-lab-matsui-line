@@ -365,7 +365,7 @@ test('changing the composition retires a completed or in-flight success curve', 
   await expect(page.locator('#dl-measure-cancel')).toBeHidden();
   await expect(page.locator('#dl-measure-result')).toBeEmpty();
   await expect(page.locator('#dl-measure-status')).toContainText('prior curve was retired');
-  await expect(page.locator('.ranking-wrap')).toHaveAttribute(
+  await expect(page.locator('#difflin .ranking-wrap')).toHaveAttribute(
     'aria-label',
     'The 16 observable last-round high-nibble hypotheses, ranked by absolute bias',
   );
