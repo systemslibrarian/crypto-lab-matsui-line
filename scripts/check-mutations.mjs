@@ -219,8 +219,8 @@ const cases = [
     patches: [
       patch(
         'src/main.ts',
-        "stopDlMeasurement();\n  $('dl-measure-result').replaceChildren();\n  $('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';",
-        "stopDlMeasurement();\n  $('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';",
+        "dlView.measureStarted = false;\n    $('dl-measure-result').replaceChildren();",
+        'dlView.measureStarted = false;',
       ),
     ],
     owner: 'changing the composition retires a completed or in-flight success curve',
@@ -263,8 +263,8 @@ const cases = [
     patches: [
       patch(
         'src/main.ts',
-        "$('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';\n  renderDlPanel();\n  syncUrl();",
-        "$('dl-measure-status').textContent = 'Settings changed — the prior curve was retired. Measure again.';\n  renderDlPanel();",
+        'renderDlPanel();\n  syncUrl();\n}\n\nfunction runDlComposition',
+        'renderDlPanel();\n}\n\nfunction runDlComposition',
       ),
     ],
     owner: 'composition controls update the URL and survive reload',
