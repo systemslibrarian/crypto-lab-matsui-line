@@ -66,6 +66,7 @@ import {
   DL_BUDGETS,
   DL_DX,
   naiveBias,
+  pathAwareBias,
   runDlAttack,
   suffixCorrelation,
   measureDlSuccessRate,
@@ -980,6 +981,7 @@ function renderDlPanel(): void {
     result: shown,
     design,
     naiveBias: naiveBias(designatedPath(DL_SBOX, design, DL_DX).weight, suffixCorrelation(DL_SBOX, design)),
+    pathAwareBias: pathAwareBias(DL_SBOX, design, DL_DX),
     stale: dlView.stale,
   });
   const rankingWrap = $('dl-ranking').closest<HTMLElement>('.ranking-wrap');

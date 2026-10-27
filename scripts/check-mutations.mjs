@@ -233,10 +233,12 @@ const cases = [
   {
     name: 'finite-budget control calls sample noise the exact path sum',
     patches: [
+      // The verdict is handed the run's sampled bias in place of the exact
+      // signed path sum, so the control reads "-1/8" where the page promises 0.
       patch(
-        'src/ui/difflin.ts',
-        '<strong>0</strong>. This selected ${result.attackPairs}-pair run measures',
-        '<strong>${signed(result.measuredBias)}</strong>. This selected ${result.attackPairs}-pair run measures',
+        'src/main.ts',
+        '    pathAwareBias: pathAwareBias(DL_SBOX, design, DL_DX),',
+        '    pathAwareBias: shown?.measuredBias ?? pathAwareBias(DL_SBOX, design, DL_DX),',
       ),
     ],
     owner: 'a finite-budget control separates exact cancellation from sample noise',
