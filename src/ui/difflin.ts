@@ -7,6 +7,7 @@
 
 import {
   designatedPath,
+  fullCodebookBiasSpread,
   naiveBias,
   pathAwareBias,
   pathPairBias,
@@ -27,6 +28,9 @@ export interface DlSetup {
   readonly sbox: Sbox;
   readonly design: DlDesign;
 }
+
+/** Keys walked for the on-page bias spread: the success curve's own 512-key stride. */
+const SPREAD_KEYS = 512;
 
 /** The composition skeleton: prefix, joining state, suffix, statistic. */
 export function renderDlSetup(el: HTMLElement, { sbox, design }: DlSetup): void {
@@ -133,6 +137,13 @@ export function renderDlHeuristics(
   const naive = naiveBias(designated.weight, corr);
   const aware = pathAwareBias(sbox, design, 0x0b);
   const measured = runDlAttack({ sbox, key, design, budget: 128 });
+  // The same 512-key stride the success curve walks, counted on the real
+  // cipher here so the sentence below reports what the "Measured" row reads
+  // under other keys instead of asserting it.
+  const spread = fullCodebookBiasSpread({ sbox, design, keyCount: SPREAD_KEYS });
+  const spreadText = spread
+    .map((point) => `${asFraction(point.bias, 1024)} for ${point.keys} of ${SPREAD_KEYS} keys`)
+    .join(' and ');
   el.innerHTML = `
     <div class="stat-stack" role="region" aria-label="Heuristic layers versus the measured bias" tabindex="0">
       <table class="dl-heuristics">
@@ -165,14 +176,17 @@ export function renderDlHeuristics(
              The p-weighted heuristic <em>understates</em> this cipher. The reason is in the table above:
              every path of this DDT row leaves ⟨λin, Δ'⟩ = ${designated.lambdaInDot}, so the off-path assumption fails
              upward. The path-aware estimate is ${asFraction(aware, 1024)}; this session measures
-             <strong>${signed(measured.measuredBias)}</strong>. Across keys the full-codebook measurement is 1/4 or 5/16,
-             because the joining values within each path are not a uniform independent population. The differential
-             still matters: it selects a DDT row whose signed path contributions reinforce.
+             <strong>${signed(measured.measuredBias)}</strong>. Counted on the real cipher for each of the ${SPREAD_KEYS}
+             deterministic keys the success curve walks, the full-codebook measurement is ${spreadText} — the unit
+             suite's exhaustive 65,536-key test pins the same two values — because the joining values within each
+             path are not a uniform independent population. The differential still matters: it selects a DDT row
+             whose signed path contributions reinforce.
            </p>`
         : `<p>
              The control. The p-weighted heuristic promises ${asFraction(naive, 1024)}, but the signed path sum is
              <strong>${asFraction(aware, 1024)}</strong> and the cipher measures
-             <strong>${signed(measured.measuredBias)}</strong>, exactly zero. The attack uses the designated path's
+             <strong>${signed(measured.measuredBias)}</strong>, exactly zero; counted the same way for the ${SPREAD_KEYS}
+             deterministic keys the success curve walks it is ${spreadText}. The attack uses the designated path's
              right-hand side for every pair; paths with the opposite ⟨λin, Δ'⟩ therefore contribute with the opposite
              sign. Enumerating the DDT row catches the cancellation that the naive off-path assumption misses.
            </p>`
@@ -250,10 +264,12 @@ export function renderDlVerdict(
     readonly result: DlAttackResult | null;
     readonly design: DlDesign;
     readonly naiveBias: number;
+    /** Σ wᵢ·biasᵢ over the DDT row, computed by the caller from the same setup. */
+    readonly pathAwareBias: number;
     readonly stale: boolean;
   },
 ): void {
-  const { result, design, naiveBias, stale } = options;
+  const { result, design, naiveBias, pathAwareBias, stale } = options;
   if (stale) {
     el.className = 'verdict is-stale';
     el.innerHTML = `<div class="verdict-head"><span class="verdict-icon" aria-hidden="true">↻</span><span>CONFIGURATION CHANGED</span></div><p>The composition settings moved after that result. Run it again.</p>`;
@@ -272,12 +288,14 @@ export function renderDlVerdict(
       <div class="verdict-head"><span class="verdict-icon" aria-hidden="true">■</span><span>NO SIGNAL — THE CONTROL</span></div>
       <p>
         The p-weighted heuristic promised ${asFraction(naiveBias, 1024)}, but the exact signed path sum is
-        <strong>0</strong>. This selected ${result.attackPairs}-pair run measures
+        <strong>${asFraction(pathAwareBias, 1024)}</strong>. This selected ${result.attackPairs}-pair run measures
         <strong>${signed(result.measuredBias)}</strong>; any nonzero deviation at a partial budget is finite-sample
         noise around a full-codebook population that measures zero for every key. This output mask
         observes only the high key nibble, so the page ranks ${result.candidates.length} high-nibble hypotheses—not 256 pretend byte guesses.
-        Over 512 deterministic keys the signal-free ranking recovers that nibble 0 times at 96 and 128 pairs.
-        The naive assumption that failed was that off-path pairs wash out; the path table exposes their cancellation.
+        Over 512 deterministic keys the signal-free ranking recovers that nibble 0 times at 96 and 128 pairs — a
+        result pinned by the unit suite, not computed by this run; <em>Measure the real success rate</em> below
+        reproduces it on this page. The naive assumption that failed was that off-path pairs wash out; the path
+        table exposes their cancellation.
       </p>`;
     return;
   }

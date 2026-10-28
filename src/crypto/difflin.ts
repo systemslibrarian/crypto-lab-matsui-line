@@ -435,3 +435,53 @@ export function measureDlSuccessRate(options: DlMeasureOptions): DlSuccessPoint[
     return { budget, trials: keyCount, wins, tiedWins, rate: wins / keyCount };
   });
 }
+
+export interface DlBiasSpreadPoint {
+  /** (agreements − 64) / 128 for the true last-round key. */
+  readonly bias: number;
+  /** Pairs out of 128 that agreed with the designated right-hand side. */
+  readonly agreements: number;
+  /** How many of the walked keys produced this value. */
+  readonly keys: number;
+}
+
+/**
+ * The full-codebook pair statistic of the TRUE last-round key, counted for
+ * every key on the same deterministic stride the success curve walks
+ * (i·129 mod 2¹⁶) and grouped by value. No ranking and no hypothesis: this is
+ * the population the heuristic panel's single "Measured" key is drawn from,
+ * so the page can show what that row reads under other keys rather than
+ * asserting it. The unit suite's exhaustive 65,536-key test is the proof;
+ * this is the on-page sample of it.
+ */
+export function fullCodebookBiasSpread(options: {
+  readonly sbox: Sbox;
+  readonly design: DlDesign;
+  readonly keyCount: number;
+  readonly dX?: number;
+}): DlBiasSpreadPoint[] {
+  const { sbox, design, keyCount } = options;
+  if (!Number.isInteger(keyCount) || keyCount < 1 || keyCount > 0x10000) {
+    throw new RangeError('keyCount must be an integer between 1 and 65,536');
+  }
+  const dX = options.dX ?? DL_DX;
+  const pairs = chosenPairs(dX, 128);
+  const rhs = dot(design.lambdaIn, designatedPath(sbox, design, dX).joiningDiff);
+  const histogram = new Map<number, number>();
+  for (let i = 0; i < keyCount; i++) {
+    const key = generateKey((i * 129) & 0xffff);
+    const trueSubkey = key.subkeys[DL_ROUNDS] & 0xff;
+    let agreements = 0;
+    for (const [x, other] of pairs) {
+      const c1 = encrypt(x, key, sbox, DL_ROUNDS);
+      const c2 = encrypt(other, key, sbox, DL_ROUNDS);
+      const v1 = sbox.inverse[(c1 ^ trueSubkey) >> 4] << 4 | sbox.inverse[(c1 ^ trueSubkey) & 0xf];
+      const v2 = sbox.inverse[(c2 ^ trueSubkey) >> 4] << 4 | sbox.inverse[(c2 ^ trueSubkey) & 0xf];
+      if ((dot(design.lambdaOut, v1) ^ dot(design.lambdaOut, v2) ^ rhs) === 0) agreements += 1;
+    }
+    histogram.set(agreements, (histogram.get(agreements) ?? 0) + 1);
+  }
+  return [...histogram.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([agreements, keys]) => ({ bias: (agreements - pairs.length / 2) / pairs.length, agreements, keys }));
+}

@@ -253,6 +253,12 @@ test('the heuristic stack shows all three numbers, including the honest mismatch
   await expect(heuristics).toContainText('+9/32');
   await expect(heuristics).toContainText('+0.3125');
   await expect(heuristics).toContainText('understates');
+  // The across-keys sentence is counted on the page, not asserted: both values
+  // appear with their key counts, and the counts partition the 512-key stride.
+  const spread = await heuristics.textContent();
+  const counts = [...(spread ?? '').matchAll(/\+(?:1\/4|5\/16) for (\d+) of 512 keys/g)].map((m) => Number(m[1]));
+  expect(counts).toHaveLength(2);
+  expect(counts[0] + counts[1]).toBe(512);
 });
 
 test('the control measures exactly zero where the heuristic promised signal', async ({ page }) => {
@@ -275,6 +281,7 @@ test('the control measures exactly zero where the heuristic promised signal', as
   await expect(page.locator('#dl-heuristics')).toContainText('+1/16');
   await expect(page.locator('#dl-heuristics')).toContainText('signed path sum is 0');
   await expect(page.locator('#dl-heuristics')).toContainText('0.0000');
+  await expect(page.locator('#dl-heuristics')).toContainText('it is 0 for 512 of 512 keys');
 });
 
 test('a finite-budget control separates exact cancellation from sample noise', async ({ page }) => {

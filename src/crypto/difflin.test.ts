@@ -10,6 +10,7 @@ import {
   DL_DX,
   DL_ROUNDS,
   ddtEntry,
+  fullCodebookBiasSpread,
   measureDlSuccessRate,
   naiveBias,
   pathAwareBias,
@@ -374,3 +375,38 @@ describe('the cipher the composition runs on', () => {
 function runThroughEncrypt(plaintext: number, key: ReturnType<typeof generateKey>): number {
   return encrypt(plaintext, key, heys, 3);
 }
+
+describe('the full-codebook bias spread the heuristics panel renders', () => {
+  it('takes only the values 1/4 and 5/16 for the aligned design over the 512 stride-walked keys', () => {
+    const spread = fullCodebookBiasSpread({ sbox: heys, design: ALIGNED, keyCount: 512 });
+    expect(spread.map((p) => [p.agreements, p.bias])).toEqual([
+      [96, 1 / 4],
+      [104, 5 / 16],
+    ]);
+    expect(spread.every((p) => p.keys > 0)).toBe(true);
+    expect(spread.reduce((keys, p) => keys + p.keys, 0)).toBe(512);
+  });
+
+  it('is exactly zero for every one of those keys under the control', () => {
+    expect(fullCodebookBiasSpread({ sbox: heys, design: CANCELLED, keyCount: 512 })).toEqual([
+      { bias: 0, agreements: 64, keys: 512 },
+    ]);
+  });
+
+  it('agrees with the ranking attack\'s own full-codebook bias for the first walked keys', () => {
+    // Keys 0 and 129 are the first two on the stride; a one-key spread is that
+    // key's statistic, so it must match what runDlAttack measures at 128 pairs.
+    for (const [i, masterKey] of [[1, 0], [2, 129]] as const) {
+      const spread = fullCodebookBiasSpread({ sbox: heys, design: ALIGNED, keyCount: i });
+      const result = runDlAttack({ sbox: heys, key: generateKey(masterKey), design: ALIGNED, budget: 128 });
+      const point = spread.find((p) => p.agreements === result.counts[result.trueTarget]);
+      expect(point?.bias).toBeCloseTo(result.measuredBias, 12);
+    }
+  });
+
+  it('refuses an empty or oversized key walk', () => {
+    for (const keyCount of [0, 2.5, 0x10001]) {
+      expect(() => fullCodebookBiasSpread({ sbox: heys, design: ALIGNED, keyCount })).toThrow(RangeError);
+    }
+  });
+});
