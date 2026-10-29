@@ -48,8 +48,13 @@ export function renderLatTable(
           ? ''
           : `background-color:color-mix(in oklab, var(--accent) ${Math.round(strength * 62)}%, var(--grid-zero));`;
       const pressed = selected && selected.a === a && selected.b === b ? 'true' : 'false';
+      // The cell shows a signed count, so the name has to open with exactly
+      // that: axe 4.14 reports label-content-name-mismatch (WCAG 2.5.3 Label
+      // in Name) when the accessible name does not contain the visible text.
+      const face = `${count > 0 ? '+' : ''}${count}`;
       const label = [
-        `input mask ${bin4(a)}, output mask ${bin4(b)}:`,
+        `${face}:`,
+        `input mask ${bin4(a)}, output mask ${bin4(b)},`,
         `holds ${count + 8} of 16, bias ${signed(count / 16)}`,
         trailUse.length > 0 ? `— used by round ${trailUse.map((c) => c.round).join(' and ')} of the current trail` : '',
       ]
