@@ -11,6 +11,10 @@ const defaults: ExperimentState = {
   customEnd: 192,
   masterKey: 0x3a94,
   seed: 3198,
+  // ExperimentState gained these two on main with Exhibit 9 (A-D-14), after
+  // this branch was cut; the fixture has to carry them or tsc rejects it.
+  dlDesign: 'aligned',
+  dlBudget: 96,
 };
 
 describe('experiment URL state', () => {

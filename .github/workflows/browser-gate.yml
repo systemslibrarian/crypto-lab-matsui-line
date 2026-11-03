@@ -40,10 +40,25 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Browser claims and accessibility gate
         run: npm run test:e2e
-      - name: Replay recorded claim mutations
+      # Two mutation harnesses, each with its own upload. Both write
+      # mutation-evidence.json, so each is preserved immediately after its own
+      # run rather than once at the end, where the second would overwrite the
+      # first. check-mutations.mjs is main's differential-linear gate and
+      # claim-mutations.mjs is this branch's claim replay; neither replaces the
+      # other, and the deploy gate must not drop either.
+      - name: Differential-linear mutation gate
         run: npm run test:mutations
+      - name: Preserve differential-linear mutation evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: differential-linear-mutation-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: mutation-evidence.json
+          if-no-files-found: error
+          retention-days: 30
+      - name: Replay recorded claim mutations
+        run: npm run test:mutations:claims
       - name: Preserve exact mutation evidence
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: matsui-line-mutation-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
