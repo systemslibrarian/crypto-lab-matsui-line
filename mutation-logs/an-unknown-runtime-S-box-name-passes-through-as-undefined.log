@@ -1,14 +1,14 @@
 
- RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
 
- ❯ src/crypto/sbox.test.ts (7 tests | 1 failed | 6 skipped) 3ms
+ ❯ src/crypto/sbox.test.ts (7 tests | 1 failed | 6 skipped) 5ms
    ❯ S-box tables (4)
-     × rejects an unknown runtime S-box name 3ms
+     × rejects an unknown runtime S-box name 4ms
 
  Test Files  1 failed (1)
       Tests  1 failed | 6 skipped (7)
-   Start at  17:39:50
-   Duration  93ms (transform 50%, import 25%, tests 17%, worker 7%)
+   Start at  10:53:39
+   Duration  127ms (transform 49%, import 25%, tests 19%, worker 8%)
 
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯

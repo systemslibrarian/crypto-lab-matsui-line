@@ -1,14 +1,14 @@
 
- RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
 
- ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 4ms
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 6ms
    ❯ known-plaintext collection (5)
-     × bounds repeated traffic before allocating its pair array 4ms
+     × bounds repeated traffic before allocating its pair array 5ms
 
  Test Files  1 failed (1)
       Tests  1 failed | 33 skipped (34)
-   Start at  17:39:47
-   Duration  120ms (import 46%, transform 40%, tests 10%, worker 3%)
+   Start at  10:53:34
+   Duration  163ms (import 50%, transform 36%, tests 11%, worker 3%)
 
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯

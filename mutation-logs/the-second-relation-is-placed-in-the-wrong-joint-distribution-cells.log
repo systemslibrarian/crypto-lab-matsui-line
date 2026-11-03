@@ -1,14 +1,14 @@
 
- RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
 
- ❯ src/crypto/advanced.test.ts (3 tests | 1 failed | 2 skipped) 13ms
+ ❯ src/crypto/advanced.test.ts (3 tests | 1 failed | 2 skipped) 20ms
    ❯ two-mask and zero-correlation extension (3)
-     × keeps the complete joint distribution rather than assuming independence 12ms
+     × keeps the complete joint distribution rather than assuming independence 20ms
 
  Test Files  1 failed (1)
       Tests  1 failed | 2 skipped (3)
-   Start at  17:39:57
-   Duration  91ms (tests 45%, transform 34%, import 17%, worker 4%)
+   Start at  10:53:48
+   Duration  146ms (tests 48%, transform 32%, import 16%, worker 4%)
 
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯

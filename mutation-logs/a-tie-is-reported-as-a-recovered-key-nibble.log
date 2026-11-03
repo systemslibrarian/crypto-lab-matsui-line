@@ -1,14 +1,14 @@
 
- RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
 
- ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 3ms
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 5ms
    ❯ the attack fails honestly where it should (5)
-     × reports a tie rather than claiming a break 3ms
+     × reports a tie rather than claiming a break 5ms
 
  Test Files  1 failed (1)
       Tests  1 failed | 33 skipped (34)
-   Start at  17:39:56
-   Duration  100ms (import 50%, transform 38%, tests 9%, worker 3%)
+   Start at  10:53:46
+   Duration  158ms (import 52%, transform 35%, tests 9%, worker 3%)
 
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯

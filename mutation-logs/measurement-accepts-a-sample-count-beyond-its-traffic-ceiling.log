@@ -1,14 +1,14 @@
 
- RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
 
- ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 4ms
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 7ms
    ❯ measurement workload boundary (1)
-     × rejects measurement requests outside the bounded demo workload 4ms
+     × rejects measurement requests outside the bounded demo workload 6ms
 
  Test Files  1 failed (1)
       Tests  1 failed | 33 skipped (34)
-   Start at  17:39:53
-   Duration  100ms (import 48%, transform 37%, tests 11%, worker 3%)
+   Start at  10:53:42
+   Duration  167ms (import 49%, transform 36%, tests 11%, worker 3%)
 
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯

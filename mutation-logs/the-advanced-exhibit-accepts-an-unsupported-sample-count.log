@@ -1,14 +1,14 @@
 
- RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
 
- ❯ src/crypto/advanced.test.ts (3 tests | 1 failed | 2 skipped) 14ms
+ ❯ src/crypto/advanced.test.ts (3 tests | 1 failed | 2 skipped) 22ms
    ❯ two-mask and zero-correlation extension (3)
-     × rejects keys and sample counts outside the advanced controls 14ms
+     × rejects keys and sample counts outside the advanced controls 21ms
 
  Test Files  1 failed (1)
       Tests  1 failed | 2 skipped (3)
-   Start at  17:39:46
-   Duration  93ms (tests 47%, transform 33%, import 16%, worker 4%)
+   Start at  10:53:32
+   Duration  145ms (tests 48%, transform 32%, import 16%, worker 4%)
 
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯

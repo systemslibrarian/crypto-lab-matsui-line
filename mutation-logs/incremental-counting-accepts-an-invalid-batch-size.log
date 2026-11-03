@@ -1,14 +1,14 @@
 
- RUN  v5.0.4 /private/tmp/matsui-line-audit.emejrP/worktree
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
 
- ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 4ms
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 5ms
    ❯ incremental counting (5)
-     × rejects invalid incremental batch sizes 3ms
+     × rejects invalid incremental batch sizes 4ms
 
  Test Files  1 failed (1)
       Tests  1 failed | 33 skipped (34)
-   Start at  17:39:49
-   Duration  101ms (import 50%, transform 37%, tests 10%, worker 3%)
+   Start at  10:53:37
+   Duration  150ms (import 50%, transform 37%, tests 10%, worker 4%)
 
 
 ⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
