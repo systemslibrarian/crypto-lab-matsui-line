@@ -1,0 +1,33 @@
+
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
+
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 5ms
+   ❯ the attack fails honestly where it should (5)
+     × reports a tie rather than claiming a break 5ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 skipped (34)
+   Start at  10:53:46
+   Duration  158ms (import 52%, transform 35%, tests 9%, worker 3%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/attack.test.ts > the attack fails honestly where it should > reports a tie rather than claiming a break
+AssertionError: expected true to be false // Object.is equality
+
+- Expected
++ Received
+
+- false
++ true
+
+ ❯ src/crypto/attack.test.ts:294:30
+    292|       pairs: [],
+    293|     });
+    294|     expect(result.recovered).toBe(false);
+       |                              ^
+    295|     expect(result.tiedAtTop).toBe(true);
+    296|     expect(result.winners).toHaveLength(16);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

@@ -1,0 +1,33 @@
+
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
+
+ ❯ src/crypto/attack.test.ts (34 tests | 1 failed | 33 skipped) 16ms
+   ❯ measurement workload boundary (1)
+     × rejects measurement requests outside the bounded demo workload 15ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 33 skipped (34)
+   Start at  10:53:44
+   Duration  161ms (import 42%, transform 30%, tests 25%, worker 3%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/crypto/attack.test.ts > measurement workload boundary > rejects measurement requests outside the bounded demo workload
+AssertionError: expected [Function] to throw an error
+
+- Expected:
+null
+
++ Received:
+undefined
+
+ ❯ src/crypto/attack.test.ts:519:65
+    517|     expect(() => measureSuccessRate({ ...base, sampleCounts: [] })).to…
+    518|     expect(() => measureSuccessRate({ ...base, sampleCounts: [4097] })…
+    519|     expect(() => measureSuccessRate({ ...base, keyCount: 61 })).toThro…
+       |                                                                 ^
+    520|     expect(() => measureSuccessRate({ ...base, seed: -1 })).toThrow('3…
+    521|     expect(() => measureSuccessRate({ ...base, bias: Number.NaN })).to…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯

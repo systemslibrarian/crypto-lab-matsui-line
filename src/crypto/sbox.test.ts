@@ -24,6 +24,10 @@ describe('S-box tables', () => {
     }
   });
 
+  it('rejects an unknown runtime S-box name', () => {
+    expect(() => getSbox('unknown' as 'heys')).toThrow('unknown S-box');
+  });
+
   it('apply to both nibbles independently and invert cleanly', () => {
     for (const name of ['heys', 'present'] as const) {
       const sbox = getSbox(name);

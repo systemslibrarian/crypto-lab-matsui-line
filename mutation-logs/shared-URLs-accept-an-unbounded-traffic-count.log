@@ -1,0 +1,33 @@
+
+ RUN  v5.0.5 /Users/gmcas/repos/crypto-lab-matsui-line
+
+ ❯ src/state/url.test.ts (2 tests | 1 failed | 1 skipped) 4ms
+   ❯ experiment URL state (2)
+     × rejects traffic values outside the bounded controls 3ms
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 1 skipped (2)
+   Start at  10:53:31
+   Duration  117ms (transform 58%, import 19%, tests 16%, worker 7%)
+
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/state/url.test.ts > experiment URL state > rejects traffic values outside the bounded controls
+AssertionError: expected +0 to be 256 // Object.is equality
+
+- Expected
++ Received
+
+- 256
++ 0
+
+ ❯ src/state/url.test.ts:30:59
+     28|   it('rejects traffic values outside the bounded controls', () => {
+     29|     for (const value of ['0', '17', '64.5', '4097', '1048576', 'Infini…
+     30|       expect(parseState(`?n=${value}`, defaults).traffic).toBe(default…
+       |                                                           ^
+     31|     }
+     32|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
