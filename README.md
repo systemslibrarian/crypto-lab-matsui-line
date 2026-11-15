@@ -59,7 +59,7 @@ Real failure modes — in the attack, and in ciphers that must resist it.
 - **DES (FIPS 46, 1977).** Matsui broke the full 16-round cipher with 2⁴³ known plaintexts and, in 1994, actually executed it — 50 days on 12 workstations, the first experimental break of DES. Linear cryptanalysis, unlike the differential attack the design had been secretly hardened against, was not anticipated by DES's designers.
 - **AES / Rijndael (FIPS 197, 2001).** The AES S-box was chosen for a maximum linear correlation of 2⁻³, and the wide-trail design strategy bounds the number of active S-boxes per four rounds. Both exist to make linear approximations decay fast enough that no useful trail crosses ten rounds.
 - **PRESENT (CHES 2007).** The S-box shipped in this demo. Bogdanov et al. selected it under explicit criteria including a maximum linear bias of 4/16, and the paper's security argument bounds the number of active S-boxes in any linear trail.
-- **Serpent (AES finalist, 1998).** Co-designed by Eli Biham, of the pair-mate attack. Its 32 rounds were chosen to give a large margin against both differential and linear cryptanalysis simultaneously.
+- **Serpent (AES candidate 1998, finalist 1999).** Co-designed by Eli Biham, of the pair-mate attack. Its 32 rounds were chosen to give a large margin against both differential and linear cryptanalysis simultaneously.
 - **Cipher standardisation generally.** Since 1994, resistance to linear cryptanalysis has been a threshold requirement rather than a feature: a submission that cannot bound its best linear trail does not get evaluated further.
 
 ## How to Run Locally
