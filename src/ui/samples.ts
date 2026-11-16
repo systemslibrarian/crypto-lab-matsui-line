@@ -26,7 +26,7 @@ export function renderCalculator(el: HTMLElement, bias: number, currentSamples: 
     <div class="stat">
       <span class="stat-label">For 97.7% / 99.9%</span>
       <span class="stat-value">${at977.toLocaleString()} / ${at999.toLocaleString()}</span>
-      <span class="stat-note">N = (Φ⁻¹(p) / 2ε)². Ten times the confidence costs about four times the traffic.</span>
+      <span class="stat-note">N = (Φ⁻¹(p) / 2ε)². Cutting the failure rate from 2.3% to 0.1% costs about 2.4 times the traffic — the same ratio at every ε. Quadrupling is what HALVING the bias costs.</span>
     </div>
     <div class="stat">
       <span class="stat-label">At your current ${currentSamples.toLocaleString()}</span>

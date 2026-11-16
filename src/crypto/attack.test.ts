@@ -413,6 +413,19 @@ describe('how many known plaintexts do I need', () => {
     expect(quarter / half).toBeCloseTo(4, 1);
   });
 
+  // The confidence tile shows these two sample counts side by side. The ratio
+  // between them is (Phi^-1(0.999) / Phi^-1(0.977))^2 ~ 2.4 and does not depend
+  // on the bias at all; the note under the tile used to call it four times,
+  // which is the price of HALVING the bias, not of raising the confidence.
+  it('costs about 2.4x, not 4x, to go from 97.7% to 99.9%', () => {
+    for (const bias of [1 / 16, 1 / 64, 1 / 1024]) {
+      const at977 = requiredSamples(bias, 0.977);
+      const at999 = requiredSamples(bias, 0.999);
+      expect(at999 / at977).toBeCloseTo(2.4, 1);
+      expect(at999 / at977).toBeLessThan(3);
+    }
+  });
+
   it('demands infinite data from a useless approximation', () => {
     expect(requiredSamples(0, 0.9)).toBe(Number.POSITIVE_INFINITY);
     expect(requiredSamples(0.1, 1)).toBe(Number.POSITIVE_INFINITY);
