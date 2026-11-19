@@ -6,6 +6,7 @@ import test from 'node:test';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const workflowDir = join(root, '.github', 'workflows');
+const DEPLOY = 'deploy.yml';
 const read = (name) => readFileSync(join(workflowDir, name), 'utf8');
 
 test('every third-party action is pinned to a full commit', () => {
@@ -47,8 +48,14 @@ test('Pages never deploys from pull requests or cancels main publication', () =>
 test('CI tests supported Node majors from the exact lockfile', () => {
   const ci = read('ci.yml');
   const browser = read('browser-gate.yml');
-  assert.match(ci, /node:\s*\[22, 24, 26\]/);
-  for (const source of [ci, browser]) {
+  // The unit/audit gate moved to unit-gate.yml so the publish could wait on
+  // the same definition the auto-merge waits on. Assert where it LIVES, and
+  // that both callers reach it.
+  const unit = read('unit-gate.yml');
+  assert.match(unit, /node:\s*\[22, 24, 26\]/);
+  assert.match(ci, /uses: \.\/\.github\/workflows\/unit-gate\.yml/);
+  assert.match(read(DEPLOY), /uses: \.\/\.github\/workflows\/unit-gate\.yml/);
+  for (const source of [unit, browser]) {
     assert.match(source, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
     assert.match(source, /EXPECTED_SHA:[\s\S]*git rev-parse HEAD/);
     assert.match(source, /npm ci/);
