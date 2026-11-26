@@ -28,7 +28,7 @@ The page opens on the attack itself. Everything below it exists to explain the t
 ## When to Use It
 
 - **Evaluating a new block cipher or S-box.** Computing the LAT and searching for multi-round trails is one of the first things a designer does; a maximum LAT entry that is too large is a disqualifying result.
-- **Justifying round counts.** The inverse-square data requirement is what turns "one more round" into "four times the traffic", and it is the argument behind the round counts in AES, PRESENT, and Serpent.
+- **Reasoning about round-count pressure.** On this toy, one more round roughly halves the best bias and therefore quadruples the traffic under the inverse-square rule. Production round counts do not follow that toy pattern mechanically: Rijndael's AES-128 round count came from the best reduced-round shortcut attacks then known plus a four-round security margin, while its wide-trail analysis separately bounds linear correlations.
 - **Teaching why non-linearity matters.** The S-box is the only non-linear component; the attack is a demonstration of what happens to the parts of a cipher that are linear.
 - **Analysing legacy or bespoke ciphers.** Ciphers designed before 1993, or designed without cryptanalytic review, frequently have exploitable linear approximations.
 - **When NOT to use it:** do not reach for linear cryptanalysis against a modern standardised cipher and expect a result — AES, ChaCha20 and their peers were designed specifically to make the required data exceed the number of blocks the mode will ever encrypt. And **do NOT treat the toy SPN here as a cipher**: it is a teaching target, not cryptography.
@@ -82,7 +82,7 @@ npm run dev
 
 ## Build & Verify
 
-**122 unit tests** (Vitest, colocated in `src/`), including these known-answer tests:
+**134 unit tests** (Vitest, colocated in `src/`), including these known-answer tests:
 
 | KAT | Source | File |
 | --- | --- | --- |
@@ -120,3 +120,4 @@ No backend; everything runs in the browser. The trail search composes a 256×256
 ## Reduced-round ChaCha context
 
 The live demo links [EUROCRYPT 2025 bit-puncturing research](https://eprint.iacr.org/2025/437), labels reduced-round results and paper estimates, and distinguishes them from full ChaCha20 and from the attacks these labs actually execute. No reduced-round cipher replaces normal encryption.
+

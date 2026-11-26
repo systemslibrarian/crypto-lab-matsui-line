@@ -122,7 +122,9 @@ export function renderDecay(el: HTMLElement, points: readonly DecayPoint[]): voi
     <p class="control-note">
       Each extra round roughly halves the best bias on offer, and because the data requirement goes as 1/ε², halving the
       bias quadruples the traffic. Run that forward far enough and the attack needs more plaintext than the cipher will
-      ever encrypt — which is the entire defence, and the reason AES has ten rounds rather than four.
+      ever encrypt — which is the defensive goal modern block ciphers pursue with nonlinear layers, diffusion and
+      enough rounds. Rijndael's ten AES-128 rounds were chosen from the best reduced-round shortcut attacks then known
+      plus a four-round security margin, not from this toy's per-round halving pattern.
     </p>
   `;
 }
@@ -191,3 +193,4 @@ export function renderTrailTruth(
       versus 130/256 with 0x1234 (bias 1/128). The regression test counts all 256 inputs for both keys.</p>
   `;
 }
+

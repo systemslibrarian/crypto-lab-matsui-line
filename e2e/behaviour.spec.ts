@@ -13,6 +13,13 @@ const WORKING = '?sbox=heys&rounds=3&half=high&n=codebook&approx=auto&k=14996';
 /** k=0 at four rounds: the correct nibble ranks third, and must not be claimed. */
 const FAILING = '?sbox=heys&rounds=4&half=high&n=codebook&approx=auto&k=0';
 
+test('the AES round-count note distinguishes the toy scaling rule from Rijndael design evidence', async ({ page }) => {
+  await page.goto(`.${WORKING}`);
+  await expect(page.locator('.cl-hero-why')).toContainText('one of the design pressures behind AES');
+  await expect(page.locator('#piling')).toContainText('plus a four-round security margin');
+  await expect(page.locator('#piling')).toContainText("not from this toy's per-round halving pattern");
+});
+
 test('the advanced panel counts joint outcomes and distinguishes a structural zero from sample noise', async ({ page }) => {
   await page.goto(`.${WORKING}`);
   const panel = page.locator('#advanced');
@@ -427,3 +434,4 @@ test('a share link reproduces the exact composition', async ({ page }) => {
   await expect(page.locator('#dl-cancelled')).toBeChecked();
   await expect(page.locator('#dlb-96')).toBeChecked();
 });
+

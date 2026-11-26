@@ -173,8 +173,8 @@
           <span class="cl-hero-why-label">WHY IT MATTERS</span>
           <p class="cl-hero-why-text">
             Linear cryptanalysis produced the first experimental key recovery against full 16-round DES, and it needs no control
-            over the input at all — only enough ordinary traffic. Every block cipher designed since is shaped by the
-            need to survive it, which is why AES has the S-box it has.
+            over the input at all — only enough ordinary traffic. Resistance to this attack was one of the design
+            pressures behind AES's nonlinear and diffusion layers.
           </p>
         </aside>
       </header>
@@ -361,6 +361,11 @@
               <li>
                 Nyberg, <em>Linear Approximation of Block Ciphers</em>, EUROCRYPT 1994 — linear hulls, the reason the
                 lemma's prediction and the measured bias part company in exhibit 5.
+              </li>
+              <li>
+                Daemen and Rijmen, <em>The Rijndael Block Cipher</em>, AES proposal, §§7.6 and 8.2.2 — the ten-round
+                AES-128 schedule came from the best reduced-round shortcut attacks then known plus a four-round
+                security margin; the wide-trail argument separately bounds linear correlations.
               </li>
             </ul>
           </div>
@@ -706,3 +711,4 @@
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
+
